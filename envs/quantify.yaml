@@ -1,0 +1,7 @@
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - kallisto == 0.46.0
+  - sra-tools == 2.10.0-0
