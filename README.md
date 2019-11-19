@@ -13,20 +13,32 @@ bsub -Is  -q docker-interactive  -a 'docker(biolabs/snakemake:5.6.0_conda4.7.12)
 git clone https://github.com/shpakb/gq-rnaseq-pipeline.git
 ```
 
-### 3) Create symlinks from directories to pipeline_wdir :
+### 3) Create storage pipeline_wdir at storage location 
+```bash 
+mkdir /gscmnt/gc2676/martyomov_lab/shpakb/pipeline_wdir && \
+    cd /gscmnt/gc2676/martyomov_lab/shpakb/pipeline_wdir
+```
+### 4) Create symlinks and copying necessary stuff from pipeline repo to pipeline_wdir :
 
 - inside pipline_wdir
 ```bash
-ln -s {path to kalisto refseq folder} index && \
+ln -s /gscmnt/gc2676/martyomov_lab/shpakb/Assemblies/rnor_v6/ index && \
     ln -s ~/gq-rnaseq-pipeline/envs/ envs && \
-    ln -s ~/gq-rnaseq-pipeline/scripts/ scripts
+    ln -s ~/gq-rnaseq-pipeline/scripts/ scripts \
+    cp ~/gq-rnaseq-pipeline/config.yaml . \
 ```
-### 4) Copy srr.list file with that has to be quantified to pipline_wdir
 
-### 5) Run pipeline:
+### 5) Put srr.list file with that has to be quantified to pipline_wdir
+
+### 6) Activate conda env 
+```bash 
+source activate snakemake
+```
+
+### 6) Run pipeline:
 ```bash
 snakemake -pr --use-conda --profile lsf --jobs 50 --restart-times 3 \
-    --directory /gscmnt/gc2676/martyomov_lab/shpakb/kallisto_wdir \
+    --directory $(pwd) \
     --jobscript $(pwd)/lsf_jobscript.sh
 ```
 
