@@ -1,6 +1,7 @@
-SRAS = ["SRR8175492"]
-
 configfile: "config.yaml"
+
+# SRAS = ["SRR8175492"]
+SRAS = [line.rstrip('\n') for line in open(config["srr.list"])]
 
 rule all:
     input:
@@ -20,7 +21,7 @@ rule sra_download:
     shadow: "shallow"
     conda: "envs/quantify.yaml"
     shell:
-         "scripts/download_pipeline.sh {wildcards.srr} {output} >{log} 2>&1"
+         "scripts/download_sra.sh {wildcards.srr} {output} >{log} 2>&1"
 
 
 rule sra_kallisto_quant:

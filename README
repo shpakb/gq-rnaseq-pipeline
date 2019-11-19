@@ -1,0 +1,32 @@
+Pipeline quantifies SRR files and aggregates them first to GSM and then to GSM matrices.
+
+
+1) Run docker container:
+- Better run in tmux as interactive session:
+```bash
+bsub -Is  -q docker-interactive  -a 'docker(biolabs/snakemake:5.6.0_conda4.7.12)' /bin/bash
+```
+2) Git clone snakemake repo to home directory:
+```bash
+git clone https://github.com/shpakb/gq-rnaseq-pipeline.git
+```
+
+3) Create symlinks from directories to pipeline_wdir :
+
+- inside pipline_wdir
+```bash
+ln -s {path to kalisto refseq folder} index && \
+    ln -s ~/gq-rnaseq-pipeline/envs/ envs && \
+    ln -s ~/gq-rnaseq-pipeline/scripts/ scripts
+```
+4) Copy srr.list file with that has to be quantified ot pipline_wdir
+
+5) Run pipeline:
+```bash
+snakemake -pr --use-conda --profile lsf --jobs 50 --restart-times 3 \
+    --directory /gscmnt/gc2676/martyomov_lab/shpakb/kallisto_wdir \
+    --jobscript $(pwd)/lsf_jobscript.sh
+```
+
+-pr ???
+
