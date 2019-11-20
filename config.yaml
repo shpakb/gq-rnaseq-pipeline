@@ -1,2 +1,2 @@
 refseq: "indx/rnor_v6_kallisto"
-sra_list: "srr.list"
+srr_list: "srr.list"

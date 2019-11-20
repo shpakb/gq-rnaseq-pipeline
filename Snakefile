@@ -1,7 +1,6 @@
 configfile: "config.yaml"
 
-# SRAS = ["SRR8175492"]
-SRAS = [line.rstrip('\n') for line in open(config["srr.list"])]
+SRAS = [line.rstrip('\n') for line in open(config["srr_list"])]
 
 rule all:
     input:
