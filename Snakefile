@@ -14,6 +14,7 @@ rule all:
         )
 
 rule sra_download:
+    resources: load=25
     output: temp("sra/{srr}.sra")
     log:    "sra/{srr}.log"
     message: "Downloading {wildcards.srr}"

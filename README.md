@@ -26,7 +26,8 @@ ln -s /gscmnt/gc2676/martyomov_lab/shpakb/Assemblies/rnor_v6/ index && \
     ln -s ~/gq-rnaseq-pipeline/envs/ envs && \
     ln -s ~/gq-rnaseq-pipeline/scripts/ scripts && \
     cp ~/gq-rnaseq-pipeline/config.yaml . && \
-    cp ~/gq-rnaseq-pipeline/lsf_jobscript.sh .
+    cp ~/gq-rnaseq-pipeline/lsf_jobscript.sh . && \
+    cp ~/gq-rnaseq-pipeline/Snakefile .
 ```
 
 ### 5) Put srr.list file with that has to be quantified to pipline_wdir
@@ -42,7 +43,9 @@ conda env create --file ./envs/quantify.yaml --name snakemake && \
 snakemake -pr --use-conda --profile lsf --jobs 50 --restart-times 3 \
     --directory $(pwd) \
     --jobscript $(pwd)/lsf_jobscript.sh
+    --resources load=100
 ```
 
--pr ???
+- resources parameter specifies amount of resources pipline can use. In this particular case load 100 and 
+each downloading job uses 50 "points" of load. So ther can't be more than two downloading jobs simultaneously. 
 
