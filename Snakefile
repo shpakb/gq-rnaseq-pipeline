@@ -1,17 +1,20 @@
+import pandas as pd
+
 configfile: "config.yaml"
 
-SRAS = [line.rstrip('\n') for line in open(config["srr_list"])]
+GSMS = [line.rstrip('\n') for line in open(config["gsm_list"])]
+
 
 rule all:
     input:
         expand(
             [
-                "kallisto/{srr}/abundance.h5",
-                "kallisto/{srr}/abundance.tsv",
-                "kallisto/{srr}/run_info.json"
+                gsm = "gsms/{gsm}"
             ],
-            srr=SRAS
+            gsm=GSMS
         )
+
+
 
 rule sra_download:
     resources: load=25
@@ -40,3 +43,6 @@ rule sra_kallisto_quant:
     shadow: "shallow"
     shell:
          "scripts/quantify.sh {wildcards.srr} {input.sra} {input.ref} kallisto/{wildcards.srr} >{log} 2>&1"
+
+
+# Find rat GSM made of few SRR
