@@ -13,12 +13,12 @@ bsub -Is  -q docker-interactive  -a 'docker(biolabs/snakemake:5.6.0_conda4.7.12)
 git clone https://github.com/shpakb/gq-rnaseq-pipeline.git
 ```
 
-### 3) Create storage pipeline_wdir at storage location 
+### 3) Create storage pipeline_wdir at storage location (depricated)
 ```bash 
 mkdir /gscmnt/gc2676/martyomov_lab/shpakb/pipeline_wdir && \
     cd /gscmnt/gc2676/martyomov_lab/shpakb/pipeline_wdir
 ```
-### 4) Create symlinks and copying necessary stuff from pipeline repo to pipeline_wdir :
+### 4) Create symlinks and copying necessary stuff from pipeline repo to pipeline_wdir : (depricated)
 
 - inside pipline_wdir
 ```bash
@@ -49,3 +49,5 @@ snakemake -pr --use-conda --profile lsf --jobs 50 --restart-times 3 \
 - resources parameter specifies amount of resources pipline can use. In this particular case load 100 and 
 each downloading job uses 50 "points" of load. So ther can't be more than two downloading jobs simultaneously. 
 
+- now pipeline outputs all the files right in to directory with scripts. No need to go through all steps with symlinks 
+and copying. 

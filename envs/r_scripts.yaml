@@ -1,0 +1,6 @@
+chanels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  -r-tidyverse
