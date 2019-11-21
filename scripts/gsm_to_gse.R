@@ -46,14 +46,16 @@ min_gsm <- as.integer(args[5])
 # takes list of gsm for gse and gc params
 # returns filtered list of GSM
 # TRUE if QC passed by GSM, FALSE otherwise
-gsm_list_qc <- function(gsm_list, min_exp_genes) {
-  res <- c()
-  for (gsm in gsm_list){
-    gsm_list[1] %>%
-    read.csv(sep = "\t")
-    res <- c(res, sum(gsm$est_counts == 0) >= min_exp_genes)
+gsm_list_qc <- function(gsm_id_list, inDir, min_exp_genes) {
+  filter_vec <- c()
+  for (gsm_id in gsm_id_list){
+    gsm <-
+      gsm_id %>%
+      paste(inDir, "/", ., ".tsv", sep="\t") %>%
+      read.csv(sep = "\t")
+    filter_vec <- c(filter_vec, sum(gsm_id$est_counts == 0) >= min_exp_genes)
   }
-  return(res)
+  return(gsm_id_list[filter_vec])
 }
 
 max2 <- function(array) {
@@ -61,8 +63,8 @@ max2 <- function(array) {
   sort(array, partial = n - 1)[n - 1]
 }
 
-# annotates GSE with entrez gene annotation
-# aggregates entrez probes with same name by max value
+# annotates GSE with Entrez gene annotation
+# aggregates Entrez probes with same name by max value
 annotate_genes <- function(gse, geneAnnot) {
   gse <- 
     merge(geneAnnot, gse, by="gene") %>%
@@ -120,8 +122,10 @@ aggregate_gse <- function(gsm_list, inDir, geneAnnot) {
   
   #get genes sorted 
   gse_tpm$max2 <- apply(gse_tpm, 1, FUN = max2)
+
   gse_tpm <-
     gse_tpm[order(gse_tpm$max2, decreasing = T),]
+
   gse_tpm$max2 <- NULL
   
   gse_cpm <- gse_cpm[rownames(gse_tpm),]
@@ -135,7 +139,7 @@ aggregate_gse <- function(gsm_list, inDir, geneAnnot) {
 
 # getting filtered list of gsm for GSE
 # filtering list by QC
-gsm_list <-
+gsm_id_list <-
   gsm_to_gse %>%
   read.table(sep="\t") %>%
   filter(gse==gse_id) %>%
@@ -143,19 +147,22 @@ gsm_list <-
   unlist %>%
   as.character() %>%
   unique %>%
-  gsm_list_qc
+  gsm_list_qc(inDir, min_exp_genes)
 
-# aggregate gse
-gse <- aggregate_gse(gsm_list, geneAnnot)
+# creating either empty GSE or aggregated GSE
+if (length(gsm_list) < min_gsm){
+  file.create(gse_file)
+} else {
+  gse <- aggregate_gse(gsm_id_list, geneAnnot)
 
-# round gse for better compression
-gse[, unlist(lapply(gse, is.numeric))] <-
- round(gse[, unlist(lapply(gse, is.numeric))], 3)
+  gse[, unlist(lapply(gse, is.numeric))] <-
+    round(gse[, unlist(lapply(gse, is.numeric))], 3)
 
-# write GSE
-write.table(x=gse,
-            gse_file,
-            sep = "\t",
-            row.names = F,
-            quote = F
-            )
+  # write GSE
+  write.table(x=gse,
+              gse_file,
+              sep = "\t",
+              row.names = F,
+              quote = F
+              )
+}

@@ -88,7 +88,7 @@ checkpoint aggregate_filters:
 rule gsm_to_gse:
     input:
         lambda wildcards: expand(
-            "out/{gsm}.tsv",
+            "out/gsms/{gsm}.tsv",
             gsm=GSM_TO_GSE[GSM_TO_GSE.gse == wildcards.gse]["gsm"].tolist()
         )
     output: "out/gses/{gse}.tsv"
