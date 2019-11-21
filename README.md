@@ -31,7 +31,7 @@ ln -s /gscmnt/gc2676/martyomov_lab/shpakb/Assemblies/rnor_v6/ index && \
 
 ### 5) Put srr.list file with that has to be quantified to pipline_wdir
 
-### 6) Create and activate conda env
+### 6) Create and activate conda env(when loacal) 
 ```bash 
 conda env create --file ./envs/quantify.yaml --name snakemake && \
     source activate snakemake
@@ -40,9 +40,8 @@ conda env create --file ./envs/quantify.yaml --name snakemake && \
 ### 6) Run pipeline:
 ```bash
 snakemake -pr --use-conda --profile lsf --jobs 50 --restart-times 3 \
-    --directory $(pwd) \
-    --jobscript $(pwd)/lsf_jobscript.sh
-    --resources load=100
+    --jobscript lsf_jobscript.sh \
+    --resources load=100 --verbose 
 ```
 
 - resources parameter specifies amount of resources pipline can use. In this particular case load 100 and 

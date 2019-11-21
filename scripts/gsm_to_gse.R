@@ -6,23 +6,23 @@ library(tidyverse)
 
 args <- commandArgs(TRUE)
 
-gse_file <-
-  as.character(args[1])
-gse_id <-
-  gse_file %>%
-  str_extract("GSE\\d+")
 
-cat(sprintf("Working on: %s \n", gse_id))
-cat(sprintf("Gene annotation: %s \n", as.character(args[2])))
-cat(sprintf("GSM to GSE mapping: %s \n", as.character(args[3])))
-cat(sprintf("GSM input dir: %s \n", as.character(args[4])))
-cat(sprintf("GC \n Minimum expressd genes per GSM: %s \n", as.character(args[5])))
-cat(sprintf("Mimimum GSM per GSE: %s \n", as.character(args[6])))
+cat(sprintf("Working on: %s \n", as.character(args[1])))
+cat(sprintf("GSM input dir: %s \n", as.character(args[2])))
+cat(sprintf("GSM input dir: %s \n", as.character(args[3])))
+cat(sprintf("Gene annotation: %s \n", as.character(args[4])))
+cat(sprintf("GSM to GSE mapping: %s \n", as.character(args[5])))
+cat(sprintf("GC \n Minimum expressd genes per GSM: %s \n", as.character(args[6])))
+cat(sprintf("Mimimum GSM per GSE: %s \n", as.character(args[7])))
+
+gse_id <- as.character(args[1])
+inDir <- as.character(args[2])
+outDir <- as.character(args[3])
 
 # gets Ensamble to Entrez mapping
 # removes all genes without Entrez annotation
 geneAnnot <-
-  as.character(args[2]) %>%
+  as.character(args[4]) %>%
   read.csv(stringsAsFactors = F,
            sep = "\t",
            header = F) %>%
@@ -31,15 +31,13 @@ geneAnnot <-
 colnames(geneAnnot) <- c("gene", "symbol", "entrez")
 
 gsm_to_gse <-
-  as.character(args[3]) %>%
+  as.character(args[5]) %>%
   read.csv(stringsAsFactors=F,
            sep="\t")
 
-inDir <- as.character(args[4])
-
 # QC:
-min_exp_genes <- as.integer(args[4])
-min_gsm <- as.integer(args[5])
+min_exp_genes <- as.integer(args[6])
+min_gsm <- as.integer(args[7])
 
 #############################FUNCTIONS############################
 
@@ -149,8 +147,10 @@ gsm_id_list <-
   unique %>%
   gsm_list_qc(inDir, min_exp_genes)
 
+gse_file <- paste(outDir, "/", gse_id, ".tsv")
+
 # creating either empty GSE or aggregated GSE
-if (length(gsm_list) < min_gsm){
+if (length(gsm_id_list) < min_gsm){
   file.create(gse_file)
 } else {
   gse <- aggregate_gse(gsm_id_list, geneAnnot)

@@ -98,5 +98,6 @@ rule gsm_to_gse:
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/gsm_to_gse.R {wildcards.gse}"
-        " {config[probes_to_genes]} {config[gsm_to_gse]}"
         " out/gsms out/gses"
+        " {config[probes_to_genes]} {config[gsm_to_gse]}"
+        " 13000 8"
