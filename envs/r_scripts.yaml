@@ -1,6 +1,5 @@
 chanels:
-  - bioconda
-  - conda-forge
-  - defaults
+  - anaconda
 dependencies:
-  -r-tidyverse
+  - r-essentials
+  - r-base

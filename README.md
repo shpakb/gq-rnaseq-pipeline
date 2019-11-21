@@ -2,7 +2,6 @@
 
 Pipeline quantifies SRR files and aggregates them first to GSM and then to GSM matrices.
 
-
 ### 1) Run docker container:
 - Better run in tmux as interactive session:
 ```bash
@@ -47,7 +46,13 @@ snakemake -pr --use-conda --profile lsf --jobs 50 --restart-times 3 \
 ```
 
 - resources parameter specifies amount of resources pipline can use. In this particular case load 100 and 
-each downloading job uses 50 "points" of load. So ther can't be more than two downloading jobs simultaneously. 
+each downloading job uses 50 "points" of load. So they can't be more than two downloading jobs simultaneously. 
 
 - now pipeline outputs all the files right in to directory with scripts. No need to go through all steps with symlinks 
 and copying. 
+
+- --notemp ommits temp() labels. Temporary files will be saved in this run 
+
+
+For test run:
+snakemake --notemp -pr --use-conda
