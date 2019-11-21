@@ -1,0 +1,9 @@
+refseq: "files/rnor_v6_kallisto"
+gsm_list: "files/gsm.list"
+srr_to_gsm: "files/srr_to_gsm.tsv"
+gsm_to_gse: "files/gsm_to_gse.tsv"
+probes_to_genes: "files/Rnor_6.0.98.gene_tr.tsv"
+gene_annotation: "files/"
+min_exp_genes: 13000
+min_spots_per_gsm: 10**6
+max_spots_per_gsm: 83583852

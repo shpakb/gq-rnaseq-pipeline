@@ -56,3 +56,7 @@ and copying.
 
 For test run:
 snakemake -pr --notemp --use-conda --verbose
+
+
+Run test snakemake:
+snakemake --snakefile=test.smk

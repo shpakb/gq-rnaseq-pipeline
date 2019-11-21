@@ -1,20 +1,20 @@
 # TODO: create script to initiate files
 import pandas as pd
+import os
 
-configfile: "config.yaml"
+configfile: "config_rn.yaml"
 
-#GSMS = [line.rstrip('\n') for line in open(config["gsm_list"])]
-#GSE = ["GSE86552"]
+#GSES = [line.rstrip('\n') for line in open(config["gse_list"])]
+GSES = ["GSE61179"]
 
-GSMS = ["GSM1498954"]
-
-SRR_TO_GSM = pd.read_csv("/home/boris/gq-rnaseq-pipeline/files/srr_to_gsm.tsv", sep="\t")
+SRR_TO_GSM = pd.read_csv(config["srr_to_gsm"], sep="\t")
+GSM_TO_GSE = pd.read_csv(config["gsm_to_gse"], sep="\t")
 
 rule all:
     input:
         expand(
-            ["out/gsms/{gsm}.tsv"],
-            gsm=GSMS
+            ["out/gses/{gse}.tsv"],
+            gse=GSES
         )
 
 rule sra_download:
@@ -29,15 +29,14 @@ rule sra_download:
     shell:
         "scripts/download_sra.sh {wildcards.srr} {output} >{log} 2>&1"
 
-
 rule sra_kallisto_quant:
     input:
-        sra = "out/sra/{srr}.sra",
-        ref = config["refseq"]
+        sra="out/sra/{srr}.sra",
+        ref=config["refseq"]
     output:
-        h5 = "out/kallisto/{srr}/abundance.h5",
-        tsv = "out/kallisto/{srr}/abundance.tsv",
-        json = "out/kallisto/{srr}/run_info.json"
+        h5="out/kallisto/{srr}/abundance.h5",
+        tsv="out/kallisto/{srr}/abundance.tsv",
+        json="out/kallisto/{srr}/run_info.json"
     log:
         "out/kallisto/{srr}/{srr}.log"
 
@@ -63,25 +62,41 @@ rule srr_to_gsm:
         " {config[probes_to_genes]} {config[srr_to_gsm]}"
         " out/kallisto out/gsms"
 
-# checkpoint check_gsm:
-#     input:
-#         lambda wildcards: expand(
-#             "{gsm}",
-#             gsm=GSMS[wildcards.gse]
-#             )
-#     output:
-#         qc_filter_table = "{gse}_filtration.tsv"
-#     message: "GSM QC checkpoint"
-#
-# def gsm_to_gse_input_fun(**wildcards):
-#     path = checkpoints.check_gsm.get(**wildcards).output.qc_filter_table
-#     #df = pd.read_csv(path, sep="\t")
-#     #bams = df[[answer2bool(v) for v in df['qc_passed_sample']]]["File"]
-#     gsms_passed_qc = []
-#     return gsms_passed_qc
-#
-# rule gsm_to_gse:
-#     input: gsm_to_gse_input_fun
-#     output:
-#             gse="{gse}.tsv"
+# Checkpoint
+# If GSE is not empty appends GSE id to gse_passed_qc
+checkpoint aggregate_filters:
+    input:
+        expand(
+            "out/gses/{gse}.tsv",
+            gse=GSES
+        )
+    output:
+        "out/gse_passed_qc.tsv"
+    run:
+        gse_passed = []
+        for gse_f in input:
+            if os.path.getsize(gse_f):
+                gse = os.path.basename(gse_f).replace(".tsv", "")
+                gse_passed.append(gse)
 
+        with open(str(output), "w") as out:
+            for gse in gse_passed:
+                print(gse, file=out)
+
+# Aggregates GSMs to GSE
+# If GSE fails QC outputs empty GSE
+rule gsm_to_gse:
+    input:
+        lambda wildcards: expand(
+            "out/{gsm}.tsv",
+            gsm=GSM_TO_GSE[GSM_TO_GSE.gse == wildcards.gse]["gsm"].tolist()
+        )
+    output: "out/gses/{gse}.tsv"
+    log: "out/gses/{gse}.log"
+    message: "Aggregating GSE"
+    shadow: "shallow"
+    conda: "envs/r_scripts.yaml"
+    shell:
+        "Rscript scripts/gsm_to_gse.R {wildcards.gse}"
+        " {config[probes_to_genes]} {config[gsm_to_gse]}"
+        " out/gsms out/gses"
