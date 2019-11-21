@@ -39,6 +39,7 @@ gsm_to_gse <-
 min_exp_genes <- as.integer(args[6])
 min_gsm <- as.integer(args[7])
 
+
 #############################FUNCTIONS############################
 
 # takes list of gsm for gse and gc params
@@ -49,9 +50,10 @@ gsm_list_qc <- function(gsm_id_list, inDir, min_exp_genes) {
   for (gsm_id in gsm_id_list){
     gsm <-
       gsm_id %>%
-      paste(inDir, "/", ., ".tsv", sep="\t") %>%
+      paste(inDir, "/", ., ".tsv", sep="") %>%
       read.csv(sep = "\t")
-    filter_vec <- c(filter_vec, sum(gsm_id$est_counts == 0) >= min_exp_genes)
+    print(sum(gsm$est_counts == 0))
+    filter_vec <- c(filter_vec, sum(gsm$est_counts == 0) >= min_exp_genes)
   }
   return(gsm_id_list[filter_vec])
 }
@@ -77,38 +79,32 @@ annotate_genes <- function(gse, geneAnnot) {
 # takes gsm_list filtered by qc
 #
 # aggregates GSE by "est_counts" column 
-aggregate_gse <- function(gsm_list, inDir, geneAnnot) {
+aggregate_gse <- function(gsm_id_list, inDir, geneAnnot) {
+  print(gsm_id_list)
+  print(inDir)
   gse_tpm <-
-    gsm_list[1] %>%
-    paste(inDir, "/", ., ".tsv") %>%
+    gsm_id_list[1] %>%
+    paste(inDir, "/", ., ".tsv", sep="") %>%
     read.csv(sep = "\t") %>%
     select(gene)
-  
   gse_cpm <- gse_tpm
   
-  for (gsm_id in gsm_list) {
-
+  for (gsm_id in gsm_id_list) {
     gsm <-
       gsm_id %>%
-      paste(inDir, "/", ., ".tsv") %>%
+      paste(inDir, "/", ., ".tsv", sep="") %>%
       read.csv(sep = "\t",
                stringsAsFactors = F)
-  
     # from "est_counts" to cpm
     gsm$cpm <- (gsm$est_counts/sum(gsm$est_counts))*10^6
-  
     gse_tpm <-
       gse_tpm %>%
       cbind(gsm$tpm)
-
     colnames(gse_tpm)[ncol(gse_tpm)] <- gsm_id
-
     gse_cpm <-
       gse_cpm %>%
       cbind(gsm$cpm)
-  
     colnames(gse_cpm)[ncol(gse_cpm)] <- gsm_id
-    
   }
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
   rownames(gse_tpm) <- gse_tpm$entrez
@@ -137,23 +133,32 @@ aggregate_gse <- function(gsm_list, inDir, geneAnnot) {
 
 # getting filtered list of gsm for GSE
 # filtering list by QC
+
 gsm_id_list <-
   gsm_to_gse %>%
-  read.table(sep="\t") %>%
   filter(gse==gse_id) %>%
   select(gsm) %>%
   unlist %>%
   as.character() %>%
-  unique %>%
+  unique
+
+print(1)
+n_gsm <- gsm_id_list %>% length()
+
+gsm_id_list <-
+  gsm_id_list %>%
   gsm_list_qc(inDir, min_exp_genes)
-
-gse_file <- paste(outDir, "/", gse_id, ".tsv")
-
 # creating either empty GSE or aggregated GSE
-if (length(gsm_id_list) < min_gsm){
+n_passed_gsm <- gsm_id_list %>% length()
+cat(sprintf("%i/%i gsm passed \n", n_passed_gsm, n_gsm))
+
+gse_file <- paste(outDir, "/", gse_id, ".tsv", sep="")
+if (n_passed_gsm < min_gsm){
   file.create(gse_file)
+  cat(sprintf("%s has been filtered. \n", gse_id))
 } else {
-  gse <- aggregate_gse(gsm_id_list, geneAnnot)
+  cat(sprintf("%s passed filter. \nAggregating... \n", gse_id))
+  gse <- aggregate_gse(gsm_id_list, inDir, geneAnnot)
 
   gse[, unlist(lapply(gse, is.numeric))] <-
     round(gse[, unlist(lapply(gse, is.numeric))], 3)
@@ -165,4 +170,6 @@ if (length(gsm_id_list) < min_gsm){
               row.names = F,
               quote = F
               )
+
+  cat(sprintf("%s is OK.", gse_id))
 }

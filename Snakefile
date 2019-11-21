@@ -99,5 +99,5 @@ rule gsm_to_gse:
     shell:
         "Rscript scripts/gsm_to_gse.R {wildcards.gse}"
         " out/gsms out/gses"
-        " {config[probes_to_genes]} {config[gsm_to_gse]}"
-        " 13000 8"
+        " {config[ensamble_genesymbol_entrez]} {config[gsm_to_gse]}"
+        " {config[min_exp_genes]} {config[min_gsm_per_gse]}"
