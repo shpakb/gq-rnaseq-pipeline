@@ -10,12 +10,10 @@ GSMS = ["GSM1498954"]
 
 SRR_TO_GSM = pd.read_csv("/home/boris/gq-rnaseq-pipeline/files/srr_to_gsm.tsv", sep="\t")
 
-print(SRR_TO_GSM[SRR_TO_GSM.gsm == "GSM2305547"]["srr"].tolist())
-
 rule all:
     input:
         expand(
-            ["out/gsm/{gsm}.tsv"],
+            ["out/gsms/{gsm}.tsv"],
             gsm=GSMS
         )
 
@@ -55,13 +53,15 @@ rule srr_to_gsm:
             "out/kallisto/{srr}/abundance.tsv",
             srr=SRR_TO_GSM[SRR_TO_GSM.gsm == wildcards.gsm]["srr"].tolist()
         )
-    output: "out/gsm/{gsm}.tsv"
+    output: "out/gsms/{gsm}.tsv"
     log: "out/gsms/{gsm}.log"
-    message: "Agregating GSM"
+    message: "Aggregating GSM"
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
-    shell: "Rscript ./scripts/srr_to_gsm.R {wildcards.gsm} \
-                ./files/srr_to_gsm.tsv ./files/probes_to_genes.tsv"
+    shell:
+        "Rscript scripts/srr_to_gsm.R {wildcards.gsm}"
+        " {config[probes_to_genes]} {config[srr_to_gsm]}"
+        " out/kallisto out/gsms"
 
 # checkpoint check_gsm:
 #     input:
