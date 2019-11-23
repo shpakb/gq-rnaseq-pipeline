@@ -1,0 +1,20 @@
+
+############################INPUT_FILES#################################################################################
+refseq: "files/rnor_v6_kallisto"
+gsm_list: "files/gsm.list"
+srr_to_gsm: "files/srr_to_gsm.tsv"
+gsm_to_gse: "files/gsm_to_gse.tsv"
+probes_to_genes: "files/Rnor_6.0.98.gene_tr.tsv"
+ensamble_genesymbol_entrez: "files/rnor_v6.gene_name_entrez.tsv"
+
+#############################FILTERS####################################################################################
+# to distinguish between single cell and bulk samples are filtered by the number of spots
+min_spots_per_gsm: 10**6
+max_spots_per_gsm: 83583852
+
+# testing params
+min_exp_genes: 4000 #13000
+min_gse_gq: 4 #8
+max_gse_gq: 200
+min_gse_pca: 2
+max_gse_pca: 200

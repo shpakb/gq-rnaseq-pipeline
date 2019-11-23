@@ -1,28 +1,24 @@
 #########################################################################
 # Takes list of GSM
-# Returns GSE with gene expression if GQ passed. Empty file otherwise
+# Returns GSE with gene expression if QC passed. Empty file otherwise
 #########################################################################
 library(tidyverse)
 
 args <- commandArgs(TRUE)
 
+outFile <- args[1]
+gse_id <- outFile %>% str_extract("GSE\\d+")
 
-cat(sprintf("Working on: %s \n", as.character(args[1])))
-cat(sprintf("GSM input dir: %s \n", as.character(args[2])))
-cat(sprintf("GSM input dir: %s \n", as.character(args[3])))
-cat(sprintf("Gene annotation: %s \n", as.character(args[4])))
-cat(sprintf("GSM to GSE mapping: %s \n", as.character(args[5])))
-cat(sprintf("GC \n Minimum expressd genes per GSM: %s \n", as.character(args[6])))
-cat(sprintf("Mimimum GSM per GSE: %s \n", as.character(args[7])))
+cat(sprintf("Working on: %s \n", gse_id))
+cat(sprintf("Gene annotation: %s \n", as.character(args[2])))
+cat(sprintf("GSM to GSE mapping: %s \n", as.character(args[3])))
+cat(sprintf("Aggregating %i GSM \n", length(args)-3))
 
-gse_id <- as.character(args[1])
-inDir <- as.character(args[2])
-outDir <- as.character(args[3])
-
-# gets Ensamble to Entrez mapping
-# removes all genes without Entrez annotation
+print(args[4:length(args)])
+# getting Ensamble to Entrez mapping
+# removing all genes without Entrez annotation
 geneAnnot <-
-  as.character(args[4]) %>%
+  args[2] %>%
   read.csv(stringsAsFactors = F,
            sep = "\t",
            header = F) %>%
@@ -31,32 +27,12 @@ geneAnnot <-
 colnames(geneAnnot) <- c("gene", "symbol", "entrez")
 
 gsm_to_gse <-
-  as.character(args[5]) %>%
+  as.character(args[3]) %>%
   read.csv(stringsAsFactors=F,
            sep="\t")
 
-# QC:
-min_exp_genes <- as.integer(args[6])
-min_gsm <- as.integer(args[7])
-
-
+gsm_files <- args[4:length(args)]
 #############################FUNCTIONS############################
-
-# takes list of gsm for gse and gc params
-# returns filtered list of GSM
-# TRUE if QC passed by GSM, FALSE otherwise
-gsm_list_qc <- function(gsm_id_list, inDir, min_exp_genes) {
-  filter_vec <- c()
-  for (gsm_id in gsm_id_list){
-    gsm <-
-      gsm_id %>%
-      paste(inDir, "/", ., ".tsv", sep="") %>%
-      read.csv(sep = "\t")
-    print(sum(gsm$est_counts == 0))
-    filter_vec <- c(filter_vec, sum(gsm$est_counts == 0) >= min_exp_genes)
-  }
-  return(gsm_id_list[filter_vec])
-}
 
 max2 <- function(array) {
   n = length(array)
@@ -76,23 +52,18 @@ annotate_genes <- function(gse, geneAnnot) {
   return(gse)
 }
 
-# takes gsm_list filtered by qc
-#
 # aggregates GSE by "est_counts" column 
-aggregate_gse <- function(gsm_id_list, inDir, geneAnnot) {
-  print(gsm_id_list)
-  print(inDir)
+aggregate_gse <- function(gsm_files, geneAnnot) {
   gse_tpm <-
-    gsm_id_list[1] %>%
-    paste(inDir, "/", ., ".tsv", sep="") %>%
+    gsm_files %>%
     read.csv(sep = "\t") %>%
     select(gene)
   gse_cpm <- gse_tpm
   
-  for (gsm_id in gsm_id_list) {
+  for (gsm_file in gsm_files) {
+    gsm_id %>% gsm_file %>% str_extract("GSM\\d+")
     gsm <-
-      gsm_id %>%
-      paste(inDir, "/", ., ".tsv", sep="") %>%
+      gsm_file %>%
       read.csv(sep = "\t",
                stringsAsFactors = F)
     # from "est_counts" to cpm
@@ -142,34 +113,21 @@ gsm_id_list <-
   as.character() %>%
   unique
 
-print(1)
-n_gsm <- gsm_id_list %>% length()
+cat("Aggregating... \n")
 
-gsm_id_list <-
-  gsm_id_list %>%
-  gsm_list_qc(inDir, min_exp_genes)
-# creating either empty GSE or aggregated GSE
-n_passed_gsm <- gsm_id_list %>% length()
-cat(sprintf("%i/%i gsm passed \n", n_passed_gsm, n_gsm))
+gse <- aggregate_gse(gsm_files, geneAnnot)
 
-gse_file <- paste(outDir, "/", gse_id, ".tsv", sep="")
-if (n_passed_gsm < min_gsm){
-  file.create(gse_file)
-  cat(sprintf("%s has been filtered. \n", gse_id))
-} else {
-  cat(sprintf("%s passed filter. \nAggregating... \n", gse_id))
-  gse <- aggregate_gse(gsm_id_list, inDir, geneAnnot)
+# rounding for memory efficiency
+gse[, unlist(lapply(gse, is.numeric))] <-
+  round(gse[, unlist(lapply(gse, is.numeric))], 3)
 
-  gse[, unlist(lapply(gse, is.numeric))] <-
-    round(gse[, unlist(lapply(gse, is.numeric))], 3)
+# write GSE
+write.table(x=gse,
+            outFile,
+            sep = "\t",
+            row.names = F,
+            quote = F
+            )
 
-  # write GSE
-  write.table(x=gse,
-              gse_file,
-              sep = "\t",
-              row.names = F,
-              quote = F
-              )
+cat("Done.\n")
 
-  cat(sprintf("%s is OK.", gse_id))
-}
