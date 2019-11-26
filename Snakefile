@@ -3,6 +3,7 @@
 configfile: "configs/config_rn.yaml"
 
 import pandas as pd
+
 # import os
 
 #GSES = [line.rstrip('\n') for line in open(config["gse_list"])]
@@ -15,7 +16,7 @@ rule all:
     input:
         "out/stats/gsm_stats.tsv",
         "out/stats/gse_gsm_filtered.tsv",
-        "out/flags/gses_to_merge_collected"
+        "out/flag"
 
 rule sra_download:
     resources:
@@ -27,9 +28,20 @@ rule sra_download:
     shadow: "shallow"
     conda: "envs/quantify.yaml"
     shell:
-        "scripts/download_sra.sh {wildcards.srr} {output} >{log} 2>&1"
+        "scripts/download_sra.sh {wildcards.srr} {output} > {log} 2>&1"
+#
+# # TODO: writes complitness flag in folder after dump is complite
+# rule sra_fastq_dump:
+#     input:
+#         "out/sra/{srr}.sra"
+#     output:
+#         directory("out/fastq/{srr}")
+#     log:    "out/sra/{srr}.log"
+#     message: "fastq-dump {wildcards.srr}"
+#     shell:
+#         "fastq-dump --outdir {output} --split-3 {input} >{log} 2>&1"
 
-# TODO: output empty folder in case of failure
+# TODO: sepparate with fastq-dump
 rule sra_kallisto_quant:
     resources:
         sra_kallisto_quant=1,
@@ -67,9 +79,6 @@ rule srr_to_gsm:
         " {config[probes_to_genes]} {config[srr_to_gsm]}"
         " out/kallisto out/gsms"
 
-# checkpoint rule that creates df:
-# GSM_ID N_GENES_EXP. If GSM file empty N_GENES_EXP is NA
-# And outputs list of GSE to aggregate
 checkpoint get_gsm_stats:
     resources:
         mem_ram=2
@@ -86,56 +95,45 @@ checkpoint get_gsm_stats:
         "   Rscript scripts/filtered_gse_list.R {output.gsm_stats}"
         "       {output.gse_filtered_df} {config[gsm_to_gse]} {config[min_gse_gq]} {config[min_exp_genes]}"
 
-def collect_gses_to_merge_input_fun(wildcards):
-    gse_filtered_path = checkpoints.get_gsm_stats.get(**wildcards).output.gse_filtered_df
-    gse_gsm_df = pd.read_csv(gse_filtered_path, sep="\t")
-    return [f"out/gses/{gse}.tsv" for gse in gse_gsm_df['gse'].tolist()]
 
-rule collect_gses_to_merge:
-    input: collect_gses_to_merge_input_fun
-    output: touch("out/flags/gses_to_merge_collected")
-
-def get_gsm(gse_id, gse_gsm_tsv):
-    df = pd.read_csv(gse_gsm_tsv, sep="\t")
-    res = df[df['gse'] == gse_id]["gsm"].tolist()
-    return res
+# def get_gsm_list(wildcards):
+#     gse_filtered_path = checkpoints.get_gsm_stats.get(**wildcards).output.gse_filtered_df
+#     gse_gsm_df = pd.read_csv(gse_filtered_path, sep="\t")
+#     return gse_gsm_df[gse_gsm_df.gse == wildcards.gse]["gsm"].tolist()
 
 
 rule gsm_to_gse:
     input:
-        gsms=lambda wildcards: expand(
-            "out/gsms/{gsm}.tsv",
-            gsm=get_gsm({wildcards.gse}, checkpoints.get_gsm_stats.get(**wildcards).output.gse_filtered_df)
-        )
-    output: "out/gses/{gse}.tsv"
+        gse_filtered_df="out/stats/gse_gsm_filtered.tsv"
+    output:
+        gse="out/gses/{gse}.tsv"
     log: "out/gses/{gse}.log"
     message: "Aggregating GSE"
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/gsm_to_gse.R {wildcards.gse}"
+        "Rscript scripts/gsm_to_gse.R {output} out/gsms"
         " {config[ensamble_genesymbol_entrez]} "
-        " out/stats/gse_gsm_filtered.tsv {input.gsms}"
+        " {input.gse_filtered_df}"
 
-# checkpoint gse_stats:
-#     input:
-#         expand(
-#             "out/gses/{gse}.tsv",
-#             gse=GSES
-#         )
+def get_filtered_gses(wildcards):
+    gse_filtered_path = checkpoints.get_gsm_stats.get(**wildcards).output.gse_filtered_df
+    gse_gsm_df = pd.read_csv(gse_filtered_path, sep="\t")
+    gses = list(set(gse_gsm_df["gse"].tolist()))
+    gse_files = ["out/gses/" + gse + ".tsv" for gse in gses]
+    return gse_files
+
+# rule for pushing filtered gses through the pipeline
+rule push_filtered_gses:
+    input:
+        get_filtered_gses
+    output:
+        flag="out/flag"
+    shell:
+        "touch {output.flag}"
+
+# rule cluster:
 #     output:
-#         "out/gse_stats.tsv"
-#     run:
-#         gse_passed_gq = []
-#         for gse_f in input:
-#             with open(gse_f) as f:
-#                 reader = csv.reader(f, delimiter='\t', skipinitialspace=True)
-#                 first_row = next(reader)
-#                 num_cols = len(first_row)
-#                 if os.path.getsize(gse_f):
-#                     gse = os.path.basename(gse_f).replace(".tsv", "")
-#                     gse_passed_gq.append(gse)
-#
-#         with open(str(output), "w") as out:
-#             for gse in gse_passed:
-#                 print(gse, file=out)
+#         "out/wgcna/{gse}/processing.log"
+#     shell:
+#         "Rscript scripts/wgcna_seq.R"

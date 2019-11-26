@@ -11,8 +11,6 @@ echo "REFSEQ: $REFSEQ"
 echo "Output dir: $OUTPUT_DIR"
 echo "Working directory: $(pwd)"
 
-
-fastq-dump --split-3 $SRA
 N=$(find . -name "$SRR*fastq" | wc -l )
 
 if [[ $N == 2 ]]

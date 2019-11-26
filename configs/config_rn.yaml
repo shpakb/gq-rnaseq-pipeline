@@ -18,3 +18,11 @@ min_gse_gq: 4 #8
 max_gse_gq: 200
 min_gse_pca: 2
 max_gse_pca: 200
+
+#############################WGCNA_PARAMS###############################################################################
+# Number of genes considered in clusterization
+wgcna_n_genes: 6000
+# WGCNA correlation function
+wgcna_cor: "pearson"
+# WGCNA network type
+wgcna_nt: "signed hybrid"
