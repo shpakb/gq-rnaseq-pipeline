@@ -57,7 +57,9 @@ and copying.
 
 
 For test run:
+```bash
 snakemake -pr --notemp --use-conda --verbose
+```
 
 
 Run test snakemake:

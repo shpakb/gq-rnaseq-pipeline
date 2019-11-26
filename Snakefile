@@ -38,7 +38,7 @@ rule sra_fastqdump:
         "out/sra/{srr}.sra"
     output:
         fastq_dir=temp(directory("out/fastq/{srr}")),
-        complete_flag="out/fastq/{srr}_complete"
+        complete_flag=temp("out/fastq/{srr}_complete")
     log:    "out/fastq/{srr}.log"
     message: "fastq-dump {wildcards.srr}"
     conda: "envs/quantify.yaml"
