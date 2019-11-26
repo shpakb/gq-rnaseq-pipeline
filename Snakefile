@@ -3,8 +3,7 @@
 configfile: "configs/config_rn.yaml"
 
 import pandas as pd
-
-# import os
+from os import path
 
 #GSES = [line.rstrip('\n') for line in open(config["gse_list"])]
 GSES = ["GSE61179"]
@@ -29,25 +28,30 @@ rule sra_download:
     conda: "envs/quantify.yaml"
     shell:
         "scripts/download_sra.sh {wildcards.srr} {output} > {log} 2>&1"
-#
-# # TODO: writes complitness flag in folder after dump is complite
-# rule sra_fastq_dump:
-#     input:
-#         "out/sra/{srr}.sra"
-#     output:
-#         directory("out/fastq/{srr}")
-#     log:    "out/sra/{srr}.log"
-#     message: "fastq-dump {wildcards.srr}"
-#     shell:
-#         "fastq-dump --outdir {output} --split-3 {input} >{log} 2>&1"
 
-# TODO: sepparate with fastq-dump
-rule sra_kallisto_quant:
+# writes complete flag file to output folder
+# consumes writing resources
+rule sra_fastqdump:
     resources:
-        sra_kallisto_quant=1,
+        writing_res=1
+    input:
+        "out/sra/{srr}.sra"
+    output:
+        fastq_dir=temp(directory("out/fastq/{srr}")),
+        complete_flag="out/fastq/{srr}_complete"
+    log:    "out/fastq/{srr}.log"
+    message: "fastq-dump {wildcards.srr}"
+    conda: "envs/quantify.yaml"
+    shell:
+        "fastq-dump --outdir {output.fastq_dir} --split-3 {input} >{log} 2>&1 &&"
+        "touch {output.complete_flag}"
+
+rule fastq_kallisto:
+    resources:
         mem_ram=4
     input:
-        sra="out/sra/{srr}.sra",
+        rules.sra_fastqdump.output.complete_flag,
+        fastq_dir="out/fastq/{srr}"
     output:
         h5=protected("out/kallisto/{srr}/abundance.h5"),
         tsv=protected("out/kallisto/{srr}/abundance.tsv"),
@@ -57,10 +61,9 @@ rule sra_kallisto_quant:
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
-        "scripts/quantify.sh {wildcards.srr} {input.sra} "
+        "scripts/quantify.sh {wildcards.srr} {input.fastq_dir} "
         " {config[refseq]} out/kallisto/{wildcards.srr} >{log} 2>&1"
 
-# TODO: sepparate on two fastq-split and kallisto quant
 rule srr_to_gsm:
     resources:
         mem_ram=1

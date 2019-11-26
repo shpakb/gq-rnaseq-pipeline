@@ -39,10 +39,13 @@ conda env create --file ./envs/quantify.yaml --name snakemake && \
 
 ### 6) Run pipeline:
 ```bash
-snakemake -pr --use-conda --profile lsf --jobs 50 --restart-times 3 \
+snakemake -pr --use-conda --profile lsf --jobs 50 \
     --jobscript lsf_jobscript.sh \
     --resources load=100 --verbose 
 ```
+
+Add when script is more or less stable: 
+--restart-times 3
 
 - resources parameter specifies amount of resources pipline can use. In this particular case load 100 and 
 each downloading job uses 50 "points" of load. So they can't be more than two downloading jobs simultaneously. 
