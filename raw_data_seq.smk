@@ -39,13 +39,16 @@ rule sra_accession_table_download:
 
 rule sra_accession_table_clean:
     resources:
-        mem_ram=8
+        writing_res=1
     input:
         rules.sra_accession_table_download.output
     output:
-        "out/data/sra_accession_clean.tsv"
+        srr_gms_spots="out/data/srr_gsm_spots.tsv",
+        temp1=temp("out/data/temp1"),
+        temp2=temp("out/data/temp2")
     shell:
-        "scripts/bash/clean_sra_accession_table.sh {input} {output}"
+        "scripts/bash/clean_sra_accession_table.sh {input} {output.srr_gms_spots}"
+        " {output.temp1} {output.temp2}"
 
 # checkpoint prefilter_seq_gse:
 #     '''
