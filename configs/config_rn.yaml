@@ -1,17 +1,29 @@
+# TODO: add list of acceptable platforms
+# TODO: add 3cols(or rule to get to 3cols)
 ############################INPUT_FILES#################################################################################
-refseq: "files/rnor_v6_kallisto"
-gsm_list: "files/gsm.list"
-srr_to_gsm: "files/srr_to_gsm.tsv"
-gsm_to_gse: "files/gsm_to_gse.tsv"
-probes_to_genes: "files/Rnor_6.0.98.gene_tr.tsv"
-ensamble_genesymbol_entrez: "files/rnor_v6.gene_name_entrez.tsv"
+geo_search_result_chip: "input/gds_result_rn.txt"
+
+refseq: "input/rnor_v6_kallisto"
+gsm_list: "input/gsm.list"
+srr_to_gsm: "input/srr_to_gsm.tsv"
+gsm_to_gse: "input/gsm_to_gse.tsv"
+probes_to_genes: "input/Rnor_6.0.98.gene_tr.tsv"
+ensamble_genesymbol_entrez: "input/rnor_v6.gene_name_entrez.tsv"
+
+
+#############################LINKS######################################################################################
+sra_accession_table: "ftp://ftp.ncbi.nlm.nih.gov/sra/reports/Metadata/SRA_Accessions.tab"
 
 #############################FILTERS####################################################################################
+# GSE prefiltering values used to aggregate expression matrices
+prefilterin_min_gsm: 2
+prefiltering_max_gsm: 400
+
 # to distinguish between single cell and bulk samples are filtered by the number of spots
 min_spots_per_gsm: 10**6
 max_spots_per_gsm: 83583852
 
-# testing params
+# filters(test values)
 min_exp_genes: 4000 #13000
 min_gse_gq: 4 #8
 max_gse_gq: 200
