@@ -37,30 +37,35 @@ rule sra_accession_table_download:
     shell:
         "wget -O {output} {config[sra_accession_table]}"
 
-rule sra_accession_table_clean:
+rule get_srr_table:
     resources:
         writing_res=1
     input:
         rules.sra_accession_table_download.output
     output:
-        srr_gms_spots="out/data/srr_gsm_spots.tsv",
-        temp1=temp("out/data/temp1"),
-        temp2=temp("out/data/temp2")
+        srr_table="out/data/srr_gsm_spots.tsv"
     shell:
-        "scripts/bash/clean_sra_accession_table.sh {input} {output.srr_gms_spots}"
-        " {output.temp1} {output.temp2}"
+        "scripts/bash/clean_sra_accession_table.sh {input} {output.srr_table}"
 
-# checkpoint prefilter_seq_gse:
-#     '''
-#     Takes seq SM metadata and prefiltering values from config (
-#     Outputs:
-#         1) {lab}_gse_filtering.tsv
-#         2) {lab}_gsm_filtering.tsv
-#         3) {lab}_prefiltered.list with list of GSE ids that has number of GSM
-#     between mim and max number of GSM after filtering out other types of experiments
-#     '''
-#     output: "out"
-
+rule prefilter_seq_gse:
+    '''
+    Takes seq SM metadata and prefiltering values from config (
+    Outputs:
+        1) gse_filtering.tsv
+        2) gsm_filtering.tsv
+        3) gse_prefiltered.list with list of GSE ids that has number of GSM
+    between mim and max number of GSM after filtering out other types of experiments
+    '''
+    input:
+        srr_table=rules.get_srr_table.output.srr_table,
+        gse_table=rules.sm_seq_metadata.output.gse_table,
+        gsm_table=rules.sm_seq_metadata.output.gsm_table
+    output:
+        gse_filtering_df="out/data/gse_filtering.tsv",
+        gsm_filtering_df="out/data/gsm_filtering.tsv",
+        gse_filtered_list="out/data/gse_filtered.list"
+    shell:
+        "Rscript scripts/R/filter_seq.R {input.srr_table} {input.gse_table} {input.gsm_table}"
 rule sra_download:
     resources:
         download_res=1,

@@ -12,4 +12,4 @@ rule all:
         rules.series_matrices_seq_download.output.complete_flag,
         rules.sm_seq_metadata.output.gsm_table,
         rules.sm_seq_metadata.output.gse_table,
-        rules.sra_accession_table_clean.output
+        rules.get_srr_gsm_spots_table.output
