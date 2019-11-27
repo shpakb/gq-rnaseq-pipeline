@@ -38,6 +38,8 @@ rule sra_accession_table_download:
         "wget -O {output} {config[sra_accession_table]}"
 
 rule sra_accession_table_clean:
+    resources:
+        mem_ram=8
     input:
         rules.sra_accession_table_download.output
     output:
