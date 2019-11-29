@@ -52,8 +52,6 @@ rule get_srr_df:
         " Rscript scripts/R/clean_sra_accession_df.R {output.srr_df}"
 
 checkpoint prequant_filter:
-    '''
-    '''
     message: "Pre-quantification filtering... "
     input:
         srr_df=rules.get_srr_df.output.srr_df,
@@ -119,27 +117,39 @@ rule fastq_kallisto:
         "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} "
         " {config[refseq]} out/kallisto/{wildcards.srr} >{log} 2>&1"
 
-def get_srr_files(wildcards):
+
+# For some reason input function returns proper output during graph calculation and
+# Returns first output variable from checkpoint during rule execution
+# So...  I have to have one func for graph and one for evaluation...
+def get_srr_files_graph(wildcards):
     srr_df_file = checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df
     srr_df = pd.read_csv(srr_df_file, sep="\t")
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_files = expand("out/kallisto/{srr}/abundance.tsv", srr=srr_list)
-    print(srr_files)
+    return srr_files
+
+def get_srr_files_exec(wildcards):
+    srr_df_file = "out/data/filtering/prequant/srr_gsm.tsv"
+    srr_df = pd.read_csv(srr_df_file, sep="\t")
+    srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
+    srr_files = expand("out/kallisto/{srr}/abundance.tsv", srr=srr_list)
     return srr_files
 
 rule srr_to_gsm:
     resources:
         mem_ram=1
     input:
-        get_srr_files
-    output: "out/gsms/{gsm}.tsv"
+        srr_files_graph=get_srr_files_graph,
+        srr_files_exec=get_srr_files_exec
+    output:
+        gsm_file="out/gsms/{gsm}.tsv"
     log: "out/gsms/{gsm}.log"
-    message: "Aggregating GSM {wildcards.gsm}"
+    message: "Aggregating {wildcards.gsm}"
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/srr_to_gsm.R {wildcards.gsm}"
-        " {config[probes_to_genes]} {input}"
+        "Rscript scripts/R/srr_to_gsm.R {output.gsm_file}"
+        " {config[probes_to_genes]} {input.srr_files_exec}"
 
 
 def get_prequant_filtered_gsm(wildcards):

@@ -8,8 +8,10 @@ cat(sprintf("Number of SRR to aggregate: %i \n", length(args)-2))
 
 print(args)
 
+gsmFile <- args[1]
+
 gsm_id <-
-  args[1] %>%
+  gsmFile %>%
   str_extract("GSM\\d+")
 
 # getting gene_mapping
@@ -21,12 +23,13 @@ gene_mapping <-
 
 colnames(gene_mapping) <- c("GENE", "TRANSCRIPT")
 
+srr_list <- args[3:length(args)]
 
 ##############FUNCS#################
 
-aggregate_gsm <- function(srr_list, inDir) {
+aggregate_gsm <- function(srr_list) {
   gsm <-
-    paste(inDir, "/", srr_list[1], "/abundance.tsv", sep = "") %>%
+    srr_list[1] %>%
     read.table(sep = "\t",
                header = T,
                stringsAsFactors = F)
@@ -40,9 +43,9 @@ aggregate_gsm <- function(srr_list, inDir) {
     select("target_id",	"est_counts", "tpm")
   
   if (length(srr_list) > 1) {
-    for (i in 2:length(srr_list)) {
+    for (srr_file in 2:length(srr_list)) {
       srr <-
-        paste(inDir, "/", srr_list[1], "/abundance.tsv", sep = "") %>%
+        srr_file
         read.table(sep = "\t",
                    header = T,
                    stringsAsFactors = F)
@@ -61,34 +64,32 @@ aggregate_gsm <- function(srr_list, inDir) {
 }
 
 collapse_transcripts <- function(gsm, gene_mapping) {
-  gsm <-
-    merge(gsm,
-          gene_mapping,
-          by.x = "target_id",
-          by.y = "transcript",
-          all = T) %>%
-    select(-"target_id") %>%
-    aggregate(. ~ gene, ., FUN = sum)
-  
-  return(gsm)
+    print(head(gsm))
+    gsm <-
+        merge(gsm,
+              gene_mapping,
+              by.x = "target_id",
+              by.y = "TRANSCRIPT",
+              all = T) %>%
+        select(-"target_id") %>%
+        aggregate(. ~ GENE, ., FUN = sum)
+
+    return(gsm)
 }
 
 ##################EXECUTION##################
 
-srr_list <-
-  srr_to_gsm %>%
-  filter(gsm == gsm_id) %>%
-  select("srr") %>%
-  unlist %>%
-  unique
 
-gsm <- aggregate_gsm(srr_list, kallistoDir)
+gsm <- aggregate_gsm(srr_list)
 
 gsm <- collapse_transcripts(gsm, gene_mapping)
 
+print(head(gsm))
+print(gsmFile)
+
 write.table(
   gsm,
-  paste(outDir, "/", gsm_id, ".tsv", sep = ""),
+  gsmFile,
   row.names = F,
   quote = F,
   sep = "\t"
