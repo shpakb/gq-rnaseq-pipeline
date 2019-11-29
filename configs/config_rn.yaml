@@ -14,7 +14,7 @@ ensamble_genesymbol_entrez: "input/rnor_v6.gene_name_entrez.tsv"
 gpl_df: "input/gpl.tsv"
 
 #############################LINKS######################################################################################
-sra_accession_table: "ftp://ftp.ncbi.nlm.nih.gov/sra/reports/Metadata/SRA_Accessions.tab"
+sra_accession_df: "ftp://ftp.ncbi.nlm.nih.gov/sra/reports/Metadata/SRA_Accessions.tab"
 
 #############################FILTERS####################################################################################
 ## Pre-quantification filters
