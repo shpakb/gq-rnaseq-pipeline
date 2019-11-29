@@ -1,3 +1,5 @@
+import pandas as pd
+
 configfile: "configs/config_rn.yaml"
 
 rule series_matrices_seq_download:
@@ -22,12 +24,12 @@ rule sm_seq_metadata:
     input:
         rules.series_matrices_seq_download.output.sm_dir
     output:
-        gsm_table="out/data/metadata/seq/gsm.tsv",
-        gse_table="out/data/metadata/seq/gse.tsv"
+        gsm_df="out/data/metadata/seq/gsm.tsv",
+        gse_df="out/data/metadata/seq/gse.tsv"
     shell:
-        "python scripts/python/parse_sm_metadata.py {input} {output.gse_table} {output.gsm_table}"
+        "python scripts/python/parse_sm_metadata.py {input} {output.gse_df} {output.gsm_df}"
 
-rule sra_accession_table_download:
+rule sra_accession_df_download:
     resources:
         download_res=1,
         writing_res=1,
@@ -35,37 +37,42 @@ rule sra_accession_table_download:
     output:
         temp("out/data/sra_accession_raw.tab")
     shell:
-        "wget -O {output} {config[sra_accession_table]}"
+        "wget -O {output} {config[sra_accession_df]}"
 
-rule get_srr_table:
+rule get_srr_df:
     resources:
         writing_res=1
     input:
-        rules.sra_accession_table_download.output
+        rules.sra_accession_df_download.output
     output:
-        srr_table="out/data/srr_gsm_spots.tsv"
+        srr_df="out/data/srr_gsm_spots.tsv"
+    conda: "envs/r_scripts.yaml"
     shell:
-        "scripts/bash/clean_sra_accession_table.sh {input} {output.srr_table}"
+        "scripts/bash/clean_sra_accession_df.sh {input} {output.srr_df} &&"
+        " Rscript scripts/R/clean_sra_accession_df.R {output.srr_df}"
 
-rule prefilter_seq_gse:
+checkpoint prequant_filter:
     '''
-    Takes seq SM metadata and prefiltering values from config (
-    Outputs:
-        1) gse_filtering.tsv
-        2) gsm_filtering.tsv
-        3) gse_prefiltered.list with list of GSE ids that has number of GSM
-    between mim and max number of GSM after filtering out other types of experiments
     '''
+    message: "Pre-quantification filtering... "
     input:
-        srr_table=rules.get_srr_table.output.srr_table,
-        gse_table=rules.sm_seq_metadata.output.gse_table,
-        gsm_table=rules.sm_seq_metadata.output.gsm_table
+        srr_df=rules.get_srr_df.output.srr_df,
+        gse_df=rules.sm_seq_metadata.output.gse_df,
+        gsm_df=rules.sm_seq_metadata.output.gsm_df,
+        gpl_df=config["gpl_df"]
     output:
-        gse_filtering_df="out/data/gse_filtering.tsv",
-        gsm_filtering_df="out/data/gsm_filtering.tsv",
-        gse_filtered_list="out/data/gse_filtered.list"
+        gsm_gse_df="out/data/filtering/prequant/gsm_gse.tsv",
+        gsm_filtering_df="out/data/filtering/prequant/gsm_filtering.tsv",
+        passing_gsm_list="out/data/filtering/prequant/passing_gsm.list",
+        srr_gsm_df="out/data/filtering/prequant/srr_gsm.tsv"
     shell:
-        "Rscript scripts/R/filter_seq.R {input.srr_table} {input.gse_table} {input.gsm_table}"
+        "Rscript scripts/R/prequant_filter.R {input.gse_df} {input.gsm_df} {input.gpl_df} {input.srr_df}"
+        " {config[organism]} {config[min_spots_gsm]} {config[max_spots_gsm]} {config[quant_min_gsm]} "
+        " {config[quant_max_gsm]} {output.gsm_filtering_df} {output.passing_gsm_list} {output.srr_gsm_df}"
+        " {output.gsm_gse_df}"
+
+
+
 rule sra_download:
     resources:
         download_res=1,
@@ -109,46 +116,68 @@ rule fastq_kallisto:
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
-        "scripts/R/quantify.sh {wildcards.srr} {input.fastq_dir} "
+        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} "
         " {config[refseq]} out/kallisto/{wildcards.srr} >{log} 2>&1"
 
-# rule srr_to_gsm:
-#     resources:
-#         mem_ram=1
-#     input:
-#         lambda wildcards: expand(
-#             "out/kallisto/{srr}/abundance.tsv",
-#             srr=SRR_GSM_DF[SRR_GSM_DF.gsm == wildcards.gsm]["srr"].tolist()
-#         )
-#     output: "out/gsms/{gsm}.tsv"
-#     log: "out/gsms/{gsm}.log"
-#     message: "Aggregating GSM {wildcards.gsm}"
-#     shadow: "shallow"
-#     conda: "envs/r_scripts.yaml"
-#     shell:
-#         "Rscript scripts/srr_to_gsm.R {wildcards.gsm}"
-#         " {config[probes_to_genes]} {config[srr_to_gsm]}"
-#         " out/kallisto out/gsms"
+def get_srr_files(wildcards):
+    srr_df_file = checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df
+    srr_df = pd.read_csv(srr_df_file, sep="\t")
+    srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
+    srr_files = expand("out/kallisto/{srr}/abundance.tsv", srr=srr_list)
+    print(srr_files)
+    return srr_files
 
-# checkpoint get_gsm_stats:
-#     resources:
-#         mem_ram=2
-#     input:
-#         gsm_files=lambda wildcards: expand(
-#             "out/gsms/{gsm}.tsv",
-#             gsm=GSM_GSE_DF[GSM_GSE_DF['gse'].isin(GSES)]["gsm"].tolist()
-#         ),
-#     output:
-#         gsm_stats="out/stats/gsm_stats.tsv",
-#         gse_filtered_df="out/stats/gse_gsm_filtered.tsv"
-#     shell:
-#         "Rscript scripts/get_gsm_stats.R {output.gsm_stats} {input.gsm_files} &&"
-#         "   Rscript scripts/filtered_gse_list.R {output.gsm_stats}"
-#         "       {output.gse_filtered_df} {config[gsm_to_gse]} {config[min_gse_gq]} {config[min_exp_genes]}"
+rule srr_to_gsm:
+    resources:
+        mem_ram=1
+    input:
+        get_srr_files
+    output: "out/gsms/{gsm}.tsv"
+    log: "out/gsms/{gsm}.log"
+    message: "Aggregating GSM {wildcards.gsm}"
+    shadow: "shallow"
+    conda: "envs/r_scripts.yaml"
+    shell:
+        "Rscript scripts/R/srr_to_gsm.R {wildcards.gsm}"
+        " {config[probes_to_genes]} {input}"
+
+
+def get_prequant_filtered_gsm(wildcards):
+    filtered_gsm_list = checkpoints.prequant_filter.get(**wildcards).output.passing_gsm_list
+    gsms = [line.rstrip('\n') for line in open(filtered_gsm_list)]
+    gsm_files = expand("out/gsms/{gsm}.tsv", gsm=gsms)
+    return gsm_files
+
+def get_gsm_gse_df(wildcards):
+    return checkpoints.prequant_filter.get(**wildcards).output.gsm_gse_df
+
+checkpoint postquant_filter:
+    resources:
+        mem_ram=2
+    input:
+        gsm_files=get_prequant_filtered_gsm,
+        gsm_gse_df=get_gsm_gse_df
+    output:
+        gsm_stats_df="out/data/filtering/postquant/gsm_stats.tsv",
+        gsm_gse_df="out/data/filtering/postquant/gse_gsm.tsv",
+        passing_gse_list="out/data/filtering/postquant/passing_gse.list"
+    shell:
+        "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {config[min_exp_genes]} {input.gsm_gse_df}"
+        "{output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list}"
+        "{input.gsm_files}"
+
+
+def get_postquant_gsms_for_gse(wildcards):
+    gsm_gse_df_file = checkpoints.postquant_filter.get(**wildcards).output.gse_gsm_df
+    gsm_gse_df = pd.read_csv(gsm_gse_df_file, sep="\t")
+    gsms = gsm_gse_df[gsm_gse_df['GSE']==wildcards.gse]["GSM"].tolist()
+    gsm_files = expand("out/gsms/{gsm}.tsv", gsm=gsms)
+    return gsm_files
+
 
 rule gsm_to_gse:
     input:
-        gse_filtered_df="out/stats/gse_gsm_filtered.tsv"
+        get_postquant_gsms_for_gse
     output:
         gse="out/gses/{gse}.tsv"
     log: "out/gses/{gse}.log"
@@ -159,6 +188,23 @@ rule gsm_to_gse:
         "Rscript scripts/gsm_to_gse.R {output} out/gsms"
         " {config[ensamble_genesymbol_entrez]} "
         " {input.gse_filtered_df}"
+
+
+def get_postquant_filter_gses(wildcards):
+    filtered_gse_list = checkpoints.postquant_filter.get(**wildcards).output.gse_filtered_list
+    gses = [line.rstrip('\n') for line in open(filtered_gse_list)]
+    gse_files = expand("out/gses/{gsm}.tsv", gsm=gses)
+    return gse_files
+
+
+rule push_filtered_gses:
+    input:
+        get_postquant_filter_gses
+    output:
+        flag="out/flag"
+    shell:
+        "touch {output.flag}"
+
 
 # def get_filtered_gses(wildcards):
 #     gse_filtered_path = checkpoints.get_gsm_stats.get(**wildcards).output.gse_filtered_df
@@ -174,3 +220,5 @@ rule gsm_to_gse:
 #         flag="out/flag"
 #     shell:
 #         "touch {output.flag}"
+
+

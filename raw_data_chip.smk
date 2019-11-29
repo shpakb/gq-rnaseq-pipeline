@@ -6,8 +6,8 @@ checkpoint filter_chip_gse:
     '''
     Takes chip sm metadata
     Outputs {lab}_filtered.list with list of GSE ids that: 
-        1) Has exp table
-        2) GPL in list of acceptable platforms be annotated with 3col 
+        1) Has exp df
+        2) GPL in list of accepdf platforms be annotated with 3col 
     '''
     output: "out"
 

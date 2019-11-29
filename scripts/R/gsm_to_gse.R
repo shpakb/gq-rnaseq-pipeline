@@ -1,21 +1,15 @@
-#########################################################################
-# Takes list of GSM
-# Returns GSE with gene expression if QC passed. Empty file otherwise
-#########################################################################
-library(tidyverse)
+suppressMessages(library(tidyverse))
 
 args <- commandArgs(TRUE)
 
-outFile <- args[1]
-gse_id <- outFile %>% str_extract("GSE\\d+")
-
-gsm_folder <- args[2]
+gsmFile <- args[1]
+gse_id <- gsmFile %>% str_extract("GSE\\d+")
 
 gsm_files <-
-    args[4] %>%
+    args[4:length(args)] %>%
     read.csv(sep="\t") %>%
-    filter(gse==gse_id) %>%
-    select(gsm) %>%
+    filter(GSE==gse_id) %>%
+    select(GSM) %>%
     unlist() %>%
     unique %>%
     paste(gsm_folder, "/", ., ".tsv", sep="")
@@ -37,7 +31,7 @@ geneAnnot <-
            header = F) %>%
   filter(V3!="NONE")
 
-colnames(geneAnnot) <- c("gene", "symbol", "entrez")
+colnames(geneAnnot) <- c("GENE", "SYMBOL", "ENTREZ")
 
 
 #############################FUNCTIONS############################
@@ -51,12 +45,12 @@ max2 <- function(array) {
 # aggregates Entrez probes with same name by max value
 annotate_genes <- function(gse, geneAnnot) {
   gse <-
-    merge(geneAnnot, gse, by="gene") %>%
-    select(-c("gene", "symbol"))
+    merge(geneAnnot, gse, by="GENE") %>%
+    select(-c("GENE", "SYMBOL"))
   # select maximum expressing probes
   gse <-
     gse %>%
-    aggregate(.~entrez, ., sum)
+    aggregate(.~ENTREZ, ., sum)
   return(gse)
 }
 
@@ -88,7 +82,7 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
     colnames(gse_cpm)[ncol(gse_cpm)] <- gsm_id
   }
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
-  rownames(gse_tpm) <- gse_tpm$entrez
+  rownames(gse_tpm) <- gse_tpm$ENTREZ
   gse_tpm$entrez <- NULL
 
   gse_cpm <- annotate_genes(gse_cpm, geneAnnot)

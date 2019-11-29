@@ -32,7 +32,6 @@ def parse_field(pattern, string, expectedNumber):
             if len(info) == expectedNumber:
                 return info
             else:
-                print(pattern)
                 return ["NA" for i in range(expectedNumber)]
         else:
             return info
@@ -42,39 +41,38 @@ def parse_field(pattern, string, expectedNumber):
 
 files = [f for f in listdir(inputDir) if isfile(join(inputDir, f))]
 files = [inputDir + f for f in files if ('GSE' in f)]
-print(len(files))
 
-gsm_df = pd.DataFrame(columns=['gsm',
-                               'gse',
-                               'gsm_submission_date',
-                               'gsm_last_update_date',
-                               'organism',
-                               'description',
-                               'gsm_title',
-                               'gsm_type',
-                               'gsm_source_name',
-                               'gsm_extract_protocol',
-                               'gpl',
-                               'gsm_library_selection',
-                               'gsm_library_source',
-                               'gsm_library_strategy',
-                               'row_count'])
+gsm_df = pd.DataFrame(columns=['GSM',
+                               'GSE',
+                               'SUBMISSION_DATE',
+                               'LAST_UPDATE_DATE',
+                               'ORGANISM',
+                               'DESCRIPTION',
+                               'TITLE',
+                               'TYPE',
+                               'SOURCE_NAME',
+                               'EXTRACT_PROTOCOL',
+                               'GPL',
+                               'LIBRARY_SELECTION',
+                               'LIBRARY_SOURCE',
+                               'LIBRARY_STRATEGY',
+                               'ROW_COUNT'])
 
-gse_df = pd.DataFrame(columns=['gse',
-                               'gse_title',
-                               'number_gsm',
-                               'gse_gpl',
-                               'gse_submission_date',
-                               "gse_status",
-                               'gse_last_update_date',
-                               'gse_summary',
-                               'gse_type',
-                               'sub_series',
-                               'super_series',
-                               'has_single_cell',
-                               'has_multichannel',
-                               'mixed',
-                               'gsm'])
+gse_df = pd.DataFrame(columns=['GSE',
+                               'TITLE',
+                               'NUMBER_GSM',
+                               'GPL',
+                               'SUBMISSION_DATE',
+                               "STATUS",
+                               'LAST_UPDATE_DATE',
+                               'SUMMARY',
+                               'TYPE',
+                               'SUB_SERIES',
+                               'IS_SUPER_SERIES',
+                               'HAS_SINGLE_CELL',
+                               'HAS_MULTICHANNEL',
+                               'MIXED',
+                               'GSMS'])
 
 gse_df.to_csv(gseOutFile, sep="\t", index=False)
 gsm_df.to_csv(gsmOutFile, sep="\t", index=False)
@@ -194,41 +192,41 @@ for file in files:
         pattern = '!Sample_platform_id\t(.*)'
         gse_gpl = ";".join(list(set(parse_field(pattern, temp, number_gsm))))
 
-        data = {'gsm': gsm,
-                'gse': [gse for i in range(number_gsm)],
-                'gsm_submission_date': gsm_submission_date,
-                'gsm_last_update_date': gsm_last_update_date,
-                'organism': organism,
-                'description': description,
-                'gsm_title': gsm_title,
-                'gsm_type': gsm_type,
-                'gsm_source_name': gsm_source_name,
-                'gsm_extract_protocol': gsm_extract_protocol,
-                'gpl': gpl,
-                'gsm_library_selection': gsm_library_selection,
-                'gsm_library_source': gsm_library_source,
-                'gsm_library_strategy': gsm_library_strategy,
-                'row_count': row_count
+        data = {'GSM': gsm,
+                'GSE': [gse for i in range(number_gsm)],
+                'SUBMISSION_DATE': gsm_submission_date,
+                'LAST_UPDATE_DATE': gsm_last_update_date,
+                'ORGANISM': organism,
+                'DESCRIPTION': description,
+                'TITLE': gsm_title,
+                'TYPE': gsm_type,
+                'SOURCE_NAME': gsm_source_name,
+                'EXTRACT_PROTOCOL': gsm_extract_protocol,
+                'GPL': gpl,
+                'LIBRARY_SELECTION': gsm_library_selection,
+                'LIBRARY_SOURCE': gsm_library_source,
+                'LIBRARY_STRATEGY': gsm_library_strategy,
+                'ROW_COUNT': row_count
                 }
 
         df = pd.DataFrame(data)
         df.to_csv(gsmOutFile, sep="\t", mode='a', header=False, index=False)
 
-        data = {'gse': [gse],
-                'gse_title': [gse_title],
-                'number_gsm': [number_gsm],
-                'gse_gpl': [gse_gpl],
-                'gse_submission_date': [gse_submission_date],
-                "gse_status": [gse_status],
-                'gse_last_update_date': [gse_last_update_date],
-                'gse_summary': [gse_summary],
-                'gse_type': [gse_type],
-                'sub_series': [sub_series],
-                'super_series': [super_series],
-                'has_single_cell': [SCFlag],
-                'has_multichannel': [MCFlag],
-                'mixed': [mixedFlag],
-                'gsm': [';'.join(gsm)]
+        data = {'GSE': [gse],
+                'TITLE': [gse_title],
+                'NUMBER_GSM': [number_gsm],
+                'GPL': [gse_gpl],
+                'SUBMISSION_DATE': [gse_submission_date],
+                "STATUS": [gse_status],
+                'LAST_UPDATE_DATE': [gse_last_update_date],
+                'SUMMARY': [gse_summary],
+                'TYPE': [gse_type],
+                'SUB_SERIES': [sub_series],
+                'IS_SUPER_SERIES': [super_series],
+                'HAS_SINGLE_CELL': [SCFlag],
+                'HAS_MULTICHANNEL': [MCFlag],
+                'MIXED': [mixedFlag],
+                'GSM': [';'.join(gsm)]
                 }
         df = pd.DataFrame(data)
         df.to_csv(gseOutFile, sep="\t", mode='a', header=False, index=False)

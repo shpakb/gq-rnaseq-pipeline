@@ -1,16 +1,16 @@
-library(tidyverse)
+suppressMessages(library(tidyverse))
 
 args <- commandArgs(TRUE)
 
-cat(sprintf("Working on: %s \n", as.character(args[1])))
-cat(sprintf("Gene mapping: %s \n", as.character(args[2])))
-cat(sprintf("SRR to GSE mapping: %s \n", as.character(args[3])))
-cat(sprintf("Kallisto out dir: %s \n", as.character(args[4])))
-cat(sprintf("Out dir: %s \n", as.character(args[5])))
+cat(sprintf("Output GSM file: %s \n", args[1]))
+cat(sprintf("Gene mapping: %s \n", args[2]))
+cat(sprintf("Number of SRR to aggregate: %i \n", length(args)-2))
 
+print(args)
 
 gsm_id <-
-  as.character(args[1])
+  args[1] %>%
+  str_extract("GSM\\d+")
 
 # getting gene_mapping
 gene_mapping <-
@@ -18,16 +18,9 @@ gene_mapping <-
   read.csv(stringsAsFactors = F,
            sep = "\t",
            header=F)
-colnames(gene_mapping) <- c("gene", "transcript")
 
-srr_to_gsm <-
-  as.character(args[3]) %>%
-  read.csv(stringsAsFactors = F, sep="\t")
+colnames(gene_mapping) <- c("GENE", "TRANSCRIPT")
 
-kallistoDir <- as.character(args[4])
-cat(kallistoDir)
-
-outDir <- as.character(args[5])
 
 ##############FUNCS#################
 
