@@ -185,11 +185,11 @@ checkpoint postquant_filter:
         gsm_gse_df="out/data/filtering/postquant/gsm_gse.tsv",
         passing_gse_list="out/data/filtering/postquant/passing_gse.list"
     message: "Post quantification filtering."
-    #log: "out/logs/postquant_filter.log"
+    log: "out/logs/postquant_filter.log"
     shell:
         "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {config[min_exp_genes]} {input.gsm_gse_df}"
         " {output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list} {input.gsm_files}"
-        #" > {log} 2>&1"
+        " > {log} 2>&1"
 
 def get_postquant_gsms_for_gse(wildcards):
     gsm_gse_df_file = checkpoints.postquant_filter.get(**wildcards).output.gsm_gse_df
@@ -204,13 +204,13 @@ rule gsm_to_gse:
         gse_df="out/data/filtering/postquant/gsm_gse.tsv"
     output:
         gse="out/gses/{gse}.tsv"
-    #log: "out/logs/gsm_to_gse/{gse}.log"
+    log: "out/logs/gsm_to_gse/{gse}.log"
     message: "Aggregating {wildcards.gse}"
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/gsm_to_gse.R {output.gse} out/gsms {config[ensamble_genesymbol_entrez]} {input.gse_df}"
-        #" > {log} 2>&1"
+        " > {log} 2>&1"
 
 def get_postquant_passing_gse(wildcards):
     filtered_gse_list = checkpoints.postquant_filter.get(**wildcards).output.passing_gse_list
