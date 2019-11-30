@@ -1,3 +1,7 @@
+# Issues: can't pass files by input functions from checkpoints in runtime. But still works during graph calculation.
+# 1) Cant pass temp(directory("out/fasqdump/")) as reference to from rules variables. Had to make workaround with
+# completion flags
+
 import pandas as pd
 
 configfile: "configs/config_rn.yaml"
@@ -101,6 +105,7 @@ rule sra_download:
         "scripts/bash/download_sra.sh {wildcards.srr} {output}"
         " > {log} 2>&1"
 
+# TODO: migrate to fasterq-dump
 rule sra_fastqdump:
     input:
         "out/sra/{srr}.sra"
@@ -136,7 +141,7 @@ rule fastq_kallisto:
 # For some reason input function returns proper output during graph calculation but
 # returns first output variable from checkpoint during rule execution
 # This does guaranties that all necessary files for the task are there but doesn't allow to pass them as an input to
-# script. Very stupid
+# script.
 def get_srr_files(wildcards):
     srr_df_file = checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df
     srr_df = pd.read_csv(srr_df_file, sep="\t")
