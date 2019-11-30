@@ -125,7 +125,6 @@ rule fastq_kallisto:
         rules.sra_fastqdump.output.complete_flag,
         fastq_dir="out/fastq/{srr}"
     output:
-        outDir=protected(directory("out/kallisto/{srr}")),
         h5=protected("out/kallisto/{srr}/abundance.h5"),
         tsv=protected("out/kallisto/{srr}/abundance.tsv"),
         json=protected("out/kallisto/{srr}/run_info.json")
@@ -134,7 +133,7 @@ rule fastq_kallisto:
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
-        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {config[refseq]} {output.outDir}"
+        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {config[refseq]} out/kallisto/{wildcards.srr}"
         " > {log} 2>&1"
 
 
