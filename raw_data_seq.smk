@@ -186,6 +186,7 @@ checkpoint postquant_filter:
         passing_gse_list="out/data/filtering/postquant/passing_gse.list"
     message: "Post quantification filtering."
     log: "out/logs/postquant_filter.log"
+    conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {config[min_exp_genes]} {input.gsm_gse_df}"
         " {output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list} {input.gsm_files}"
