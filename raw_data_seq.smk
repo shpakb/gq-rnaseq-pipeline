@@ -16,9 +16,12 @@ rule series_matrices_seq_download:
     output:
         sm_dir=directory("out/series_matrices/seq/"),
         complete_flag="out/flags/series_matrices_seq_download"
+    message: "Downloading series matrices for RNA-seq..."
+    log: "out/logs/series_matrices_seq_download.log"
     shell:
-        "scripts/bash/download_sm.sh {input} {output.sm_dir} && "
-        "touch {output.complete_flag}"
+        "scripts/bash/download_sm.sh {input} {output.sm_dir}"
+        " > {log} 2>&1 &&"
+        " touch {output.complete_flag} "
 
 rule sm_seq_metadata:
     input:
@@ -26,8 +29,11 @@ rule sm_seq_metadata:
     output:
         gsm_df="out/data/metadata/seq/gsm.tsv",
         gse_df="out/data/metadata/seq/gse.tsv"
+    message: "Aggregating metadata from series matrices..."
+    log: "out/logs/sm_seq_metadata.log"
     shell:
         "python scripts/python/parse_sm_metadata.py {input} {output.gse_df} {output.gsm_df}"
+        " > {log} 2>&1"
 
 rule sra_accession_df_download:
     resources:
@@ -36,8 +42,11 @@ rule sra_accession_df_download:
         mem_ram=2
     output:
         temp("out/data/sra_accession_raw.tab")
+    message: "Downloading SRA accession table..."
+    log: "out/logs/sra_accession_df_download.log"
     shell:
         "wget -O {output} {config[sra_accession_df]}"
+        " > {log} 2>&1"
 
 rule get_srr_df:
     resources:
@@ -46,13 +55,16 @@ rule get_srr_df:
         rules.sra_accession_df_download.output
     output:
         srr_df="out/data/srr_gsm_spots.tsv"
+    message: "Cleaning SRR df..."
+    log: "out/logs/get_srr_df.log"
     conda: "envs/r_scripts.yaml"
     shell:
-        "scripts/bash/clean_sra_accession_df.sh {input} {output.srr_df} &&"
+        "scripts/bash/clean_sra_accession_df.sh {input} {output.srr_df}"
+        " > {log} 2>&1 &&"
         " Rscript scripts/R/clean_sra_accession_df.R {output.srr_df}"
+        " >> {log} 2>&1"
 
 checkpoint prequant_filter:
-    message: "Pre-quantification filtering... "
     input:
         srr_df=rules.get_srr_df.output.srr_df,
         gse_df=rules.sm_seq_metadata.output.gse_df,
@@ -63,11 +75,15 @@ checkpoint prequant_filter:
         gsm_filtering_df="out/data/filtering/prequant/gsm_filtering.tsv",
         passing_gsm_list="out/data/filtering/prequant/passing_gsm.list",
         srr_gsm_df="out/data/filtering/prequant/srr_gsm.tsv"
+    message: "Pre-quantification filtering..."
+    log: "out/logs/prequant_filter.log"
+    conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/prequant_filter.R {input.gse_df} {input.gsm_df} {input.gpl_df} {input.srr_df}"
         " {config[organism]} {config[min_spots_gsm]} {config[max_spots_gsm]} {config[quant_min_gsm]} "
         " {config[quant_max_gsm]} {output.gsm_filtering_df} {output.passing_gsm_list} {output.srr_gsm_df}"
         " {output.gsm_gse_df}"
+        " > {log} 2>&1"
 
 
 
@@ -77,12 +93,13 @@ rule sra_download:
         writing_res=1,
         mem_ram=2
     output: temp("out/sra/{srr}.sra")
-    log:    "out/sra/{srr}.log"
+    log:    "out/logs/sra_download/{srr}.log"
     message: "Downloading {wildcards.srr}"
     shadow: "shallow"
     conda: "envs/quantify.yaml"
     shell:
-        "scripts/bash/download_sra.sh {wildcards.srr} {output} > {log} 2>&1"
+        "scripts/bash/download_sra.sh {wildcards.srr} {output}"
+        " > {log} 2>&1"
 
 rule sra_fastqdump:
     resources:
@@ -92,12 +109,13 @@ rule sra_fastqdump:
     output:
         fastq_dir=temp(directory("out/fastq/{srr}")),
         complete_flag=temp("out/fastq/{srr}_complete")
-    log:    "out/fastq/{srr}.log"
+    log:    "out/logs/sra_fastqdump/{srr}.log"
     message: "fastq-dump {wildcards.srr}"
     conda: "envs/quantify.yaml"
     shell:
-        "fastq-dump --outdir {output.fastq_dir} --split-3 {input} >{log} 2>&1 &&"
-        "touch {output.complete_flag}"
+        "fastq-dump --outdir {output.fastq_dir} --split-3 {input}"
+        " > {log} 2>&1 &&"
+        " touch {output.complete_flag}"
 
 rule fastq_kallisto:
     resources:
@@ -109,13 +127,14 @@ rule fastq_kallisto:
         h5=protected("out/kallisto/{srr}/abundance.h5"),
         tsv=protected("out/kallisto/{srr}/abundance.tsv"),
         json=protected("out/kallisto/{srr}/run_info.json")
-    log: "out/kallisto/{srr}/{srr}.log"
+    log: "out/logs/fastq_kallisto/{srr}.log"
     message: "Kallisto: {wildcards.srr}"
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
         "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} "
-        " {config[refseq]} out/kallisto/{wildcards.srr} >{log} 2>&1"
+        " {config[refseq]} out/kallisto/{wildcards.srr}"
+        " > {log} 2>&1"
 
 
 # For some reason input function returns proper output during graph calculation but
@@ -140,13 +159,14 @@ rule srr_to_gsm:
         srr_df=get_srr_df
     output:
         gsm_file="out/gsms/{gsm}.tsv"
-    log: "out/gsms/{gsm}.log"
+    log: "out/logs/srr_to_gsm/{gsm}.log"
     message: "Aggregating {wildcards.gsm}"
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/srr_to_gsm.R {output.gsm_file}"
         " {config[probes_to_genes]} {input.srr_df}"
+        " > {log} 2>&1"
 
 
 def get_prequant_filtered_gsm(wildcards):
@@ -168,10 +188,12 @@ checkpoint postquant_filter:
         gsm_stats_df="out/data/filtering/postquant/gsm_stats.tsv",
         gsm_gse_df="out/data/filtering/postquant/gse_gsm.tsv",
         passing_gse_list="out/data/filtering/postquant/passing_gse.list"
+    message: "Post quantification filtering."
+    log: "out/logs/postquant_filter.log"
     shell:
         "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {config[min_exp_genes]} {input.gsm_gse_df}"
-        "{output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list}"
-        "{input.gsm_files}"
+        " {output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list} {input.gsm_files}"
+        " > {log} 2>&1"
 
 
 def get_postquant_gsms_for_gse(wildcards):
@@ -190,15 +212,14 @@ rule gsm_to_gse:
         gse_df=get_gsm_gse_df
     output:
         gse="out/gses/{gse}.tsv"
-    log: "out/gses/{gse}.log"
-    message: "Aggregating GSE"
+    log: "out/logs/gsm_to_gse/{gse}.log"
+    message: "Aggregating {wildcards.gse}"
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/gsm_to_gse.R {output} out/gsms"
-        " {config[ensamble_genesymbol_entrez]} "
-        " {input.gse_df}"
-
+        " {config[ensamble_genesymbol_entrez]} {input.gse_df}"
+        " > {log} 2>&1"
 
 def get_postquant_filter_gses(wildcards):
     filtered_gse_list = checkpoints.postquant_filter.get(**wildcards).output.gse_filtered_list
@@ -214,21 +235,3 @@ rule push_filtered_gses:
         flag="out/flag"
     shell:
         "touch {output.flag}"
-
-
-# def get_filtered_gses(wildcards):
-#     gse_filtered_path = checkpoints.get_gsm_stats.get(**wildcards).output.gse_filtered_df
-#     gse_gsm_df = pd.read_csv(gse_filtered_path, sep="\t")
-#     gses = list(set(gse_gsm_df["gse"].tolist()))
-#     gse_files = ["out/gses/" + gse + ".tsv" for gse in gses]
-#     return gse_files
-
-# rule push_filtered_gses:
-#     input:
-#         get_filtered_gses
-#     output:
-#         flag="out/flag"
-#     shell:
-#         "touch {output.flag}"
-
-
