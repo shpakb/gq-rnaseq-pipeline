@@ -138,7 +138,6 @@ rule fastq_kallisto:
         "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {config[refseq]} out/kallisto/{wildcards.srr}"
         " > {log} 2>&1"
 
-
 # For some reason input function returns proper output during graph calculation but
 # returns first output variable from checkpoint during rule execution
 # This does guaranties that all necessary files for the task are there but doesn't allow to pass them as an input to
@@ -150,25 +149,21 @@ def get_srr_files(wildcards):
     srr_files = expand("out/kallisto/{srr}/abundance.tsv", srr=srr_list)
     return srr_files
 
-def get_srr_df(wildcards):
-    return checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df
-
 rule srr_to_gsm:
     resources:
         mem_ram=1
     input:
         srr_files=get_srr_files,
-        srr_df=get_srr_df
+        srr_df="out/data/filtering/prequant/srr_gsm.tsv"
     output:
         gsm_file="out/gsms/{gsm}.tsv"
-    log: "out/logs/srr_to_gsm/{gsm}.log"
+    #log: "out/logs/srr_to_gsm/{gsm}.log"
     message: "Aggregating {wildcards.gsm}"
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/srr_to_gsm.R {output.gsm_file}"
-        " {config[probes_to_genes]} {input.srr_df}"
-        " > {log} 2>&1"
+        "Rscript scripts/R/srr_to_gsm.R {output.gsm_file} {config[probes_to_genes]} {input.srr_df}"
+        #" > {log} 2>&1"
 
 
 def get_prequant_filtered_gsm(wildcards):
@@ -191,12 +186,11 @@ checkpoint postquant_filter:
         gsm_gse_df="out/data/filtering/postquant/gse_gsm.tsv",
         passing_gse_list="out/data/filtering/postquant/passing_gse.list"
     message: "Post quantification filtering."
-    log: "out/logs/postquant_filter.log"
+    #log: "out/logs/postquant_filter.log"
     shell:
         "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {config[min_exp_genes]} {input.gsm_gse_df}"
         " {output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list} {input.gsm_files}"
-        " > {log} 2>&1"
-
+        #" > {log} 2>&1"
 
 def get_postquant_gsms_for_gse(wildcards):
     gsm_gse_df_file = checkpoints.postquant_filter.get(**wildcards).output.gse_gsm_df
@@ -223,16 +217,15 @@ rule gsm_to_gse:
         " {config[ensamble_genesymbol_entrez]} {input.gse_df}"
         " > {log} 2>&1"
 
-def get_postquant_filter_gses(wildcards):
-    filtered_gse_list = checkpoints.postquant_filter.get(**wildcards).output.gse_filtered_list
+def get_postquant_passing_gse(wildcards):
+    filtered_gse_list = checkpoints.postquant_filter.get(**wildcards).output.passing_gse_list
     gses = [line.rstrip('\n') for line in open(filtered_gse_list)]
     gse_files = expand("out/gses/{gsm}.tsv", gsm=gses)
     return gse_files
 
-
 rule push_filtered_gses:
     input:
-        get_postquant_filter_gses
+        get_postquant_passing_gse
     output:
         flag="out/flag"
     shell:

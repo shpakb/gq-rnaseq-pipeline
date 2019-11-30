@@ -6,7 +6,6 @@ cat(sprintf("Output GSM file: %s \n", args[1]))
 cat(sprintf("Gene mapping: %s \n", args[2]))
 cat(sprintf("SRR GSM df: %s \n", args[3]))
 
-
 gsmFile <- args[1]
 
 gsm_id <-
@@ -26,6 +25,8 @@ srr_df <-
     args[3] %>%
     read.csv(sep="\t", stringsAsFactors=F)
 
+print(srr_df)
+
 srr_list <-
     srr_df %>%
     filter(GSM==gsm_id) %>%
@@ -33,7 +34,7 @@ srr_list <-
     unlist() %>%
     unique
 
-srr_list <- paste0("/out/kallisto/", srr_list, "/abundance.tsv", sep="")
+srr_list <- paste0("out/kallisto/", srr_list, "/abundance.tsv", sep="")
 
 ##############FUNCS#################
 
@@ -96,6 +97,8 @@ gsm <- collapse_transcripts(gsm, gene_mapping)
 
 print(head(gsm))
 print(gsmFile)
+
+colnames(gsm) <- c("GENE", "EST_COUNTS", "TPM")
 
 write.table(
   gsm,
