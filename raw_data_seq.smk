@@ -121,6 +121,8 @@ rule sra_fastqdump:
         " touch {output.complete_flag}"
 
 rule fastq_kallisto:
+    resources:
+        mem_ram=8
     input:
         rules.sra_fastqdump.output.complete_flag,
         fastq_dir="out/fastq/{srr}"
