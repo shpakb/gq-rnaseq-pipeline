@@ -2,21 +2,27 @@ suppressMessages(library(tidyverse))
 
 args <- commandArgs(TRUE)
 
-gsmFile <- args[1]
-gse_id <- gsmFile %>% str_extract("GSE\\d+")
+gse_file <- args[1]
+gse_id <- gse_file %>% str_extract("GSE\\d+")
+gsm_folder <- args[2]
+gene_anotation_file <- args[3]
+gsm_gse_df_file <- args[4]
+
+cat(sprintf("Working on: %s \n", gse_id))
+cat(sprintf("Output file: %s \n", gse_file))
+cat(sprintf("GSM folder: %s \n", gsm_folder))
+cat(sprintf("Gene annotation: %s \n", gene_anotation_file))
+cat(sprintf("GSM GSE df file: %s \n", gsm_gse_df_file))
 
 gsm_files <-
-    args[4:length(args)] %>%
+    gsm_gse_df_file %>%
     read.csv(sep="\t") %>%
     filter(GSE==gse_id) %>%
     select(GSM) %>%
     unlist() %>%
     unique %>%
-    paste(gsm_folder, "/", ., ".tsv", sep="")
+    paste0(gsm_folder, "/", ., ".tsv", sep="")
 
-cat(sprintf("Working on: %s \n", gse_id))
-cat(sprintf("GSM folder: %s \n", gsm_folder))
-cat(sprintf("Gene annotation: %s \n", args[3]))
 cat(sprintf("Aggregating %i GSM \n", length(gsm_files)))
 
 print(args)
@@ -71,35 +77,35 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
       read.csv(sep = "\t",
                stringsAsFactors = F)
     # from "est_counts" to cpm
-    gsm$cpm <- (gsm$est_counts/sum(gsm$est_counts))*10^6
+    gsm$CPM <- (gsm$EST_COUNTS/sum(gsm$EST_COUNTS))*10^6
     gse_tpm <-
       gse_tpm %>%
-      cbind(gsm$tpm)
+      cbind(gsm$TPM)
     colnames(gse_tpm)[ncol(gse_tpm)] <- gsm_id
     gse_cpm <-
       gse_cpm %>%
-      cbind(gsm$cpm)
+      cbind(gsm$CPM)
     colnames(gse_cpm)[ncol(gse_cpm)] <- gsm_id
   }
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
   rownames(gse_tpm) <- gse_tpm$ENTREZ
-  gse_tpm$entrez <- NULL
+  gse_tpm$ENTREZ <- NULL
 
   gse_cpm <- annotate_genes(gse_cpm, geneAnnot)
-  rownames(gse_cpm) <- gse_cpm$entrez
-  gse_cpm$entrez <- NULL
+  rownames(gse_cpm) <- gse_cpm$ENTREZ
+  gse_cpm$ENTREZ <- NULL
 
   #get genes sorted
-  gse_tpm$max2 <- apply(gse_tpm, 1, FUN = max2)
+  gse_tpm$MAX2 <- apply(gse_tpm, 1, FUN = max2)
 
   gse_tpm <-
-    gse_tpm[order(gse_tpm$max2, decreasing = T),]
+    gse_tpm[order(gse_tpm$MAX2, decreasing = T),]
 
-  gse_tpm$max2 <- NULL
+  gse_tpm$MAX2 <- NULL
 
   gse_cpm <- gse_cpm[rownames(gse_tpm),]
 
-  gse_cpm$entrez <- rownames(gse_cpm)
+  gse_cpm$ENTREZ <- rownames(gse_cpm)
 
   return(gse_cpm)
 }
@@ -109,8 +115,6 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 # getting filtered list of gsm for GSE
 # filtering list by QC
 
-cat("Aggregating... \n")
-
 gse <- aggregate_gse(gsm_files, geneAnnot)
 
 # rounding for memory efficiency
@@ -119,7 +123,7 @@ gse[, unlist(lapply(gse, is.numeric))] <-
 
 # write GSE
 write.table(x=gse,
-            outFile,
+            gse_file,
             sep = "\t",
             row.names = F,
             quote = F

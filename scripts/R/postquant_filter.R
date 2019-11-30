@@ -35,7 +35,7 @@ colnames(gsm_stats_df) <-  c("GSM", "N_GENES_EXP")
 for (f in gsm_files) {
     gsm <- read.csv(f,sep="\t", stringsAsFactors=F)
     gsm_id <- f %>% str_extract("GSM\\d+")
-    n_genes_exp <- sum(gsm$est_counts==0)
+    n_genes_exp <- sum(gsm$EST_COUNTS==0)
     gsm_stats_df[nrow(gsm_stats_df)+1,] <- c(gsm_id, n_genes_exp)
 }
 
@@ -65,7 +65,8 @@ writeLines(passing_gse_list, passing_gse_list_file)
 postquant_gsm_gse_df <-
     prequant_gsm_gse_df %>%
     filter(GSE %in% passing_gse_list) %>%
-    filter(GSM %in% good_gsm)
+    filter(GSM %in% good_gsm) %>%
+    select(GSM, GSE)
 
 write.table(postquant_gsm_gse_df, postquant_gsm_gse_df_file, sep="\t", row.names=F, quote=F)
 
