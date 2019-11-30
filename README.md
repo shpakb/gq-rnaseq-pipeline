@@ -37,24 +37,22 @@ conda env create --file ./envs/quantify.yaml --name snakemake && \
     source activate snakemake
 ```
 
-### 6) Run pipeline:
+### 6) Run pipeline in test mode on cluster: 
 ```bash
 snakemake -pr --use-conda --profile lsf --jobs 50 \
     --jobscript lsf_jobscript.sh \
-    --resources load=100 --verbose 
+    --resources load=100 --verbose --notemp
 ```
 
 Add when script is more or less stable: 
---restart-times 3
+--restart-times 3 
+remove: --notemp 
 
-- resources parameter specifies amount of resources pipline can use. In this particular case load 100 and 
+- resources parameter specifies amount of resources pipeline can use. In this particular case load 100 and 
 each downloading job uses 50 "points" of load. So they can't be more than two downloading jobs simultaneously. 
 
 - now pipeline outputs all the files right in to directory with scripts. No need to go through all steps with symlinks 
 and copying. 
-
-- --notemp ommits temp() labels. Temporary files will be saved in this run 
-
 
 For test run:
 ```bash

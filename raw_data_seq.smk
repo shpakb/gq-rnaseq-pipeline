@@ -21,7 +21,7 @@ rule series_matrices_seq_download:
     shell:
         "scripts/bash/download_sm.sh {input} {output.sm_dir}"
         " > {log} 2>&1 &&"
-        " touch {output.complete_flag} "
+        " touch {output.complete_flag}"
 
 rule sm_seq_metadata:
     input:
@@ -102,8 +102,6 @@ rule sra_download:
         " > {log} 2>&1"
 
 rule sra_fastqdump:
-    resources:
-        writing_res=1
     input:
         "out/sra/{srr}.sra"
     output:
@@ -118,12 +116,11 @@ rule sra_fastqdump:
         " touch {output.complete_flag}"
 
 rule fastq_kallisto:
-    resources:
-        mem_ram=4
     input:
         rules.sra_fastqdump.output.complete_flag,
         fastq_dir="out/fastq/{srr}"
     output:
+        outDir=protected(directory("out/kallisto/{srr}")),
         h5=protected("out/kallisto/{srr}/abundance.h5"),
         tsv=protected("out/kallisto/{srr}/abundance.tsv"),
         json=protected("out/kallisto/{srr}/run_info.json")
@@ -132,8 +129,7 @@ rule fastq_kallisto:
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
-        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} "
-        " {config[refseq]} out/kallisto/{wildcards.srr}"
+        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {config[refseq]} {output.outDir}"
         " > {log} 2>&1"
 
 
