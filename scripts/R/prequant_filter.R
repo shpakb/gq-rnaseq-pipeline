@@ -49,9 +49,11 @@ gsm_df[is.na(gsm_df)] <- "NA"
 gsm_df <- gsm_df %>% distinct()
 gsm_df <- gsm_df %>% select(c(GSM, GSE, ORGANISM, GPL, LIBRARY_SELECTION, LIBRARY_STRATEGY))
 gsm_df$LAB <- organism
+gsm_df <- na.omit(gsm_df)
 
 gse_df <- read.csv(gse_table_file, sep = "\t", stringsAsFactors = F)
 gse_df <- gse_df %>% select(c(GSE, IS_SUPER_SERIES))
+gse_df <- na.omit(gse_df)
 
 gpl_df <- read.csv(gpl_table_file, sep="\t")
 
