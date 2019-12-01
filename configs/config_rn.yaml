@@ -2,15 +2,16 @@
 # TODO: add 3cols(or rule to get to 3cols)
 ############################GENERAL#####################################################################################
 organism: "Rattus_norvegicus"
-############################INPUT_FILES#################################################################################
-geo_search_result_chip: "input/gds_result_rn.txt"
 
-refseq: "input/rnor_v6_kallisto"
-gsm_list: "input/gsm.list"
-srr_to_gsm: "input/srr_to_gsm.tsv"
-gsm_to_gse: "input/gsm_to_gse.tsv"
-probes_to_genes: "input/Rnor_6.0.98.gene_tr.tsv"
-ensamble_genesymbol_entrez: "input/rnor_v6.gene_name_entrez.tsv"
+# Push through pipeline only priority datasets
+# If flag is False priority GSE will be pushed through along with passed QC GSE
+priority_only_f: "True"
+############################INPUT_FILES#################################################################################
+geo_search_result_chip: "input/rn/gds_search_seq.txt"
+priority_gse_list: "input/rn/priority_gse_list"
+refseq: "input/rn/rnor_v6_kallisto"
+probes_to_genes: "input/rn/Rnor_6.0.98.gene_tr.tsv"
+ensamble_genesymbol_entrez: "input/rn/rnor_v6.gene_name_entrez.tsv"
 gpl_df: "input/gpl.tsv"
 
 #############################LINKS######################################################################################
@@ -26,7 +27,7 @@ max_spots_gsm: 83583852
 
 ## WGCNA filters
 min_exp_genes: 4000 #13000
-min_gse_gq: 4 #8
+min_gse_gq: 8 #8
 max_gse_gq: 200
 min_gse_pca: 2
 max_gse_pca: 200

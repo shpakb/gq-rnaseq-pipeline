@@ -2,6 +2,11 @@
 # 1) Cant pass temp(directory("out/fasqdump/")) as reference to from rules variables. Had to make workaround with
 # completion flags
 
+# Add list with priority GSE that bypasses both checkpoints
+# (except for the filtering on right organism and right type of samples)
+
+# TODO: move all QC logic to input functions(if possible)
+
 import pandas as pd
 
 configfile: "configs/config_rn.yaml"
@@ -69,11 +74,19 @@ rule get_srr_df:
         " >> {log} 2>&1"
 
 checkpoint prequant_filter:
+    '''
+    Outputs QC tables and lists of passing GSE and GSM. Takes one extra argument: priority_gse_list with GSEs that get
+    to downstream quantification regardless of QC. Keep in mind that GSM for priority GSE gets filtered by sample
+    metadata(GSM can be microarray, wrong organism etc.) 
+    Temporary added priority_only flag and script logic for test runs and to quantify things while pipeline under 
+    development.
+    '''
     input:
         srr_df=rules.get_srr_df.output.srr_df,
         gse_df=rules.sm_seq_metadata.output.gse_df,
         gsm_df=rules.sm_seq_metadata.output.gsm_df,
-        gpl_df=config["gpl_df"]
+        gpl_df=config["gpl_df"],
+        priority_gse_list=config["priority_gse_list"]
     output:
         gsm_gse_df="out/data/filtering/prequant/gsm_gse.tsv",
         gsm_filtering_df="out/data/filtering/prequant/gsm_filtering.tsv",
@@ -86,10 +99,8 @@ checkpoint prequant_filter:
         "Rscript scripts/R/prequant_filter.R {input.gse_df} {input.gsm_df} {input.gpl_df} {input.srr_df}"
         " {config[organism]} {config[min_spots_gsm]} {config[max_spots_gsm]} {config[quant_min_gsm]} "
         " {config[quant_max_gsm]} {output.gsm_filtering_df} {output.passing_gsm_list} {output.srr_gsm_df}"
-        " {output.gsm_gse_df}"
+        " {output.gsm_gse_df} {input.priority_gse_list} {config[priority_only_f]}"
         " > {log} 2>&1"
-
-
 
 rule sra_download:
     resources:
@@ -142,6 +153,8 @@ rule fastq_kallisto:
 # returns first output variable from checkpoint during rule execution
 # This does guaranties that all necessary files for the task are there but doesn't allow to pass them as an input to
 # script.
+
+
 def get_srr_files(wildcards):
     srr_df_file = checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df
     srr_df = pd.read_csv(srr_df_file, sep="\t")
@@ -175,8 +188,6 @@ def get_gsm_gse_df(wildcards):
     return checkpoints.prequant_filter.get(**wildcards).output.gsm_gse_df
 
 checkpoint postquant_filter:
-    resources:
-        mem_ram=2
     input:
         gsm_files=get_prequant_filtered_gsm,
         gsm_gse_df=get_gsm_gse_df

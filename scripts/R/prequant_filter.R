@@ -1,4 +1,7 @@
-# TODO output two tables: sra_gsm and gsm_spots
+########################################################################################################################
+# Takes filter values and GSE GSM SRR GPL mapping tables. Also, takes list of priority GSE that passes regardless
+# Outputs filtering tables. List of passing gsm, and gse.
+
 suppressMessages(library(tidyverse))
 
 args <- commandArgs(T)
@@ -11,10 +14,16 @@ min_n_spots <- as.integer(args[6])
 max_n_spots <- as.integer(args[7])
 min_n_gsm <- as.integer(args[8])
 max_n_gsm <- as.integer(args[9])
+
+# Outs
 gsm_filtering_file <- args[10]
 passing_gsm_list_file <- args[11]
 srr_gsm_talbe_file <- args[12]
 gsm_gse_df_file <- args[13]
+
+# priority root
+priority_gse_list_file <- args[14]
+priority_only_flag <- as.logical(args[15])
 
 cat(sprintf("GSE table file: %s \n", gse_table_file))
 cat(sprintf("GSM table file: %s \n", gsm_table_file))
@@ -29,7 +38,8 @@ cat(sprintf("GSM filtering table output file: %s \n", gsm_filtering_file))
 cat(sprintf("Passing gsm list: %s \n", passing_gsm_list_file))
 cat(sprintf("SRR GSM table file: %s \n", srr_gsm_talbe_file))
 cat(sprintf("GSM GSE df file: %s \n", gsm_gse_df_file))
-
+cat(sprintf("GSE priority list: %s \n", priority_gse_list_file))
+cat(sprintf("Priority only flag: %s \n", as.character(priority_only_flag)))
 
 ########################################################################################################################
 
@@ -50,6 +60,7 @@ srr_df <- srr_df %>% filter(GSM %in% unique(gsm_df$GSM))
 srr_df$SPOTS <- srr_df$SPOTS %>% as.integer()
 gsm_spots_df <- aggregate(SPOTS~GSM, srr_df, sum)
 
+priority_gse_list <- readLines(priority_gse_list_file)
 ########################################################################################################################
 
 df <-
@@ -137,9 +148,33 @@ passing_gse <-
 df1$GSE_IS_PASSING <-
   df1$GSE %in% passing_gse
 
+df1$PRIORITY_GSE <-
+  df$GSE %in% priority_gse_list
+
 write.table(df1, gsm_filtering_file, col.names = T, row.names = F, sep = "\t", quote=F)
 
-passing_gsm <- unique(df1$GSM)
+# GSM to quantify:
+if(priority_only_flag){
+  passing_gsm <-
+    df1 %>%
+    filter(
+      (IS_RIGHT_ORGANISM & NOT_SUPER_SERIES & CDNA & RNA_SEQ & IS_ILLUMINA & HAS_SRR & SPOTS_CUTOFF & PRIORITY_GSE)
+    ) %>%
+    select(GSM) %>%
+    unlist %>%
+    unique
+} else {
+  passing_gsm <-
+    df1 %>%
+    filter(
+      (IS_RIGHT_ORGANISM & NOT_SUPER_SERIES & CDNA & RNA_SEQ & IS_ILLUMINA & HAS_SRR & SPOTS_CUTOFF & GSE_IS_PASSING) |
+      (IS_RIGHT_ORGANISM & NOT_SUPER_SERIES & CDNA & RNA_SEQ & IS_ILLUMINA & HAS_SRR & SPOTS_CUTOFF & PRIORITY_GSE)
+    ) %>%
+    select(GSM) %>%
+    unlist %>%
+    unique
+}
+
 
 writeLines(passing_gsm, passing_gsm_list_file)
 
@@ -150,9 +185,12 @@ srr_gsm_df <-
 
 write.table(srr_gsm_df, srr_gsm_talbe_file, col.names = T, row.names = F, sep = "\t", quote=F)
 
+# GSM GSE df with proper mapping for GSE aggregation
 gsm_gse_df <-
   gsm_df %>%
-  filter(GSE %in% passing_gse) %>%
+  filter(
+    (GSE %in% passing_gse) | (GSE %in% priority_gse_list)
+  ) %>%
   filter(GSM %in% passing_gsm)
 
 write.table(gsm_gse_df, gsm_gse_df_file, col.names = T, row.names = F, sep = "\t", quote=F)

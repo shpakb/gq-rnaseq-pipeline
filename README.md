@@ -12,24 +12,15 @@ bsub -Is  -q docker-interactive  -a 'docker(biolabs/snakemake:5.8.1_conda4.7.12)
 git clone https://github.com/shpakb/gq-rnaseq-pipeline.git
 ```
 
-### 3) Create storage pipeline_wdir at storage location (depricated)
-```bash 
-mkdir /gscmnt/gc2676/martyomov_lab/shpakb/pipeline_wdir && \
-    cd /gscmnt/gc2676/martyomov_lab/shpakb/pipeline_wdir
-```
-### 4) Create symlinks and copying necessary stuff from pipeline repo to pipeline_wdir : (depricated)
+### 3) Create input dir with:
+### - Symlinks for reference genomes.
+### - Search results from GEO to parse 
+### see the config file for rest 
 
-- inside pipline_wdir
+Example how to create symlink:
 ```bash
-ln -s /gscmnt/gc2676/martyomov_lab/shpakb/Assemblies/rnor_v6/ index && \
-    ln -s ~/gq-rnaseq-pipeline/envs/ envs && \
-    ln -s ~/gq-rnaseq-pipeline/scripts/ scripts && \
-    cp ~/gq-rnaseq-pipeline/config.yaml . && \
-    cp ~/gq-rnaseq-pipeline/lsf_jobscript.sh . && \
-    cp ~/gq-rnaseq-pipeline/Snakefile .
+ln -s /gscmnt/gc2676/martyomov_lab/shpakb/Assemblies/rnor_v6/ index 
 ```
-
-### 5) Put srr.list file with that has to be quantified to pipline_wdir
 
 ### 6) Create and activate conda env(when loacal) 
 ```bash 
@@ -37,15 +28,24 @@ conda env create --file ./envs/quantify.yaml --name snakemake && \
     source activate snakemake
 ```
 
-### 6) Run pipeline in test mode on cluster: 
+Test run: 
+```bash
+snakemake -pr --notemp --use-conda --verbose
+```
+Dry run(graph eval):
+```bash
+snakemake --dryrun
+```
+
+### 6) Run pipeline in test mode on cluster(when on cluster): 
 ```bash
 snakemake -pr --use-conda --profile lsf --jobs 50 \
     --jobscript lsf_jobscript.sh \
     --resources load=100 --verbose --notemp
 ```
 
-Add when script is more or less stable: 
---restart-times 3 
+Add when script is more or less stable:
+add: --restart-times 3 
 remove: --notemp 
 
 - resources parameter specifies amount of resources pipeline can use. In this particular case load 100 and 
@@ -53,11 +53,6 @@ each downloading job uses 50 "points" of load. So they can't be more than two do
 
 - now pipeline outputs all the files right in to directory with scripts. No need to go through all steps with symlinks 
 and copying. 
-
-For test run:
-```bash
-snakemake -pr --notemp --use-conda --verbose
-```
 
 
 Run test snakemake:
