@@ -42,7 +42,7 @@ cat(sprintf("GSE priority list: %s \n", priority_gse_list_file))
 cat(sprintf("Priority only flag: %s \n", as.character(priority_only_flag)))
 
 ########################################################################################################################
-
+print(11)
 gsm_df <- read.csv(gsm_table_file, sep = "\t", header = T, stringsAsFactors = F)
 gsm_df$GSE <- gsm_df$GSE %>% str_extract("GSE\\d+")
 gsm_df[is.na(gsm_df)] <- "NA"
@@ -50,18 +50,20 @@ gsm_df <- gsm_df %>% distinct()
 gsm_df <- gsm_df %>% select(c(GSM, GSE, ORGANISM, GPL, LIBRARY_SELECTION, LIBRARY_STRATEGY))
 gsm_df$LAB <- organism
 gsm_df <- na.omit(gsm_df)
-
+print(12)
 gse_df <- read.csv(gse_table_file, sep = "\t", stringsAsFactors = F)
 gse_df <- gse_df %>% select(c(GSE, IS_SUPER_SERIES))
 gse_df <- na.omit(gse_df)
-
+print(13)
 gpl_df <- read.csv(gpl_table_file, sep="\t")
-
+print(14)
 srr_df <- read.csv(srr_table_file, sep="\t", stringsAsFactors = F)
+print(111)
 srr_df <- srr_df %>% filter(GSM %in% unique(gsm_df$GSM))
+print(112)
 srr_df$SPOTS <- srr_df$SPOTS %>% as.integer()
 gsm_spots_df <- aggregate(SPOTS~GSM, srr_df, sum)
-
+print(15)
 priority_gse_list <- readLines(priority_gse_list_file)
 ########################################################################################################################
 print(1)
