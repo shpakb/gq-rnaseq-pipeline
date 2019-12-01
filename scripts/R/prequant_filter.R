@@ -64,6 +64,7 @@ gsm_spots_df <- aggregate(SPOTS~GSM, srr_df, sum)
 
 priority_gse_list <- readLines(priority_gse_list_file)
 ########################################################################################################################
+print(1)
 
 df <-
   gsm_df %>%
@@ -114,7 +115,7 @@ spots_filtered <-
   select(GSM) %>%
   unlist %>%
   unique
-
+print(2)
 # getting exclusive super super_series gsm
 a <- gsm_df %>% filter(GSE %in% super_series_list) %>% select(GSM) %>% unlist %>% unique()
 b <- gsm_df %>% filter(!(GSE %in% super_series_list)) %>% select(GSM) %>% unlist %>% unique()
@@ -133,11 +134,14 @@ df1 <-
     SPOTS_CUTOFF = df$GSM %in% spots_filtered,
     stringsAsFactors=F)
 
+print(3)
+
 df2 <-
   df1 %>%
   filter(IS_RIGHT_ORGANISM & NOT_SUPER_SERIES & CDNA & RNA_SEQ & IS_ILLUMINA & HAS_SRR & SPOTS_CUTOFF) %>%
   count(GSE)
 
+print(4)
 
 passing_gse <-
   df2 %>%
@@ -147,6 +151,8 @@ passing_gse <-
   unlist %>%
   unique
 
+print(5)
+
 df1$GSE_IS_PASSING <-
   df1$GSE %in% passing_gse
 
@@ -154,9 +160,10 @@ df1$PRIORITY_GSE <-
   df$GSE %in% priority_gse_list
 
 write.table(df1, gsm_filtering_file, col.names = T, row.names = F, sep = "\t", quote=F)
-
+print(6)
 # GSM to quantify:
 if(priority_only_flag){
+  print(7)
   passing_gsm <-
     df1 %>%
     filter(
@@ -166,6 +173,7 @@ if(priority_only_flag){
     unlist %>%
     unique
 } else {
+  print(8)
   passing_gsm <-
     df1 %>%
     filter(
@@ -177,7 +185,7 @@ if(priority_only_flag){
     unique
 }
 
-
+print(9)
 writeLines(passing_gsm, passing_gsm_list_file)
 
 srr_gsm_df <-
@@ -185,6 +193,7 @@ srr_gsm_df <-
   filter(GSM %in% passing_gsm) %>%
   select(SRR, GSM)
 
+print(10)
 write.table(srr_gsm_df, srr_gsm_talbe_file, col.names = T, row.names = F, sep = "\t", quote=F)
 
 # GSM GSE df with proper mapping for GSE aggregation
