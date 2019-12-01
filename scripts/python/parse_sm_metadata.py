@@ -109,37 +109,39 @@ for file in files:
             MCFlag = False
 
         # GSE
-
-        gse_title = re.findall(r'!Series_title\t"(.*)"', temp)[0]
-
-        gse_status = re.findall(r'!Series_status\t"(.*)"', temp)[0]
-
-        gse_submission_date = re.findall(r'!Series_submission_date\t"(.*)"', temp)[0]
-
-        gse_last_update_date = re.findall(r'!Series_last_update_date\t"(.*)"', temp)[0]
-
-        gse_summary = re.findall(r'!Series_summary\t"(.*)"', temp)[0]
-
-        gse_type = re.findall('!Series_type\t"(.*)"', temp)
-        gse_type = list(filter(None, gse_type))
-        # Check if multiple types of experiments are in same matrix
-        if len(list(set(gse_type))) != 1:
-            mixedFlag = True
-        else:
-            mixedFlag = False
-        gse_type = ";".join(gse_type)
-
         try:
-            sub_series = re.findall(r'"SubSeries of: (.*)"', temp)
-            sub_series = ",".join(sub_series)
-        except IndexError:
-            sub_series = "NA"
+            gse_title = re.findall(r'!Series_title\t"(.*)"', temp)[0]
 
-        try:
-            super_series = re.findall(r'"SuperSeries of: (.*)"', temp)
-            super_series = ",".join(super_series)
+            gse_status = re.findall(r'!Series_status\t"(.*)"', temp)[0]
+
+            gse_submission_date = re.findall(r'!Series_submission_date\t"(.*)"', temp)[0]
+
+            gse_last_update_date = re.findall(r'!Series_last_update_date\t"(.*)"', temp)[0]
+
+            gse_summary = re.findall(r'!Series_summary\t"(.*)"', temp)[0]
+
+            gse_type = re.findall('!Series_type\t"(.*)"', temp)
+            gse_type = list(filter(None, gse_type))
+            # Check if multiple types of experiments are in same matrix
+            if len(list(set(gse_type))) != 1:
+                mixedFlag = True
+            else:
+                mixedFlag = False
+            gse_type = ";".join(gse_type)
+
+            try:
+                sub_series = re.findall(r'"SubSeries of: (.*)"', temp)
+                sub_series = ",".join(sub_series)
+            except IndexError:
+                sub_series = "NA"
+
+            try:
+                super_series = re.findall(r'"SuperSeries of: (.*)"', temp)
+                super_series = ",".join(super_series)
+            except IndexError:
+                super_series = "NA"
         except IndexError:
-            super_series = "NA"
+            next
 
         # GSM
         pattern = r'!Sample_geo_accession\t(.*)'
