@@ -217,6 +217,6 @@ checkpoint postquant_filter:
     shell:
         "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {params.min_exp_genes} {input.gsm_gse_df}"
         " {output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list} {input.gsm_files}"
-        # " > {log} 2>&1"
+        " > {log} 2>&1"
 
 
