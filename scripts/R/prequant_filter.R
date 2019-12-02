@@ -196,6 +196,7 @@ gsm_gse_df <-
   filter(
     (GSE %in% passing_gse) | (GSE %in% priority_gse_list)
   ) %>%
-  filter(GSM %in% passing_gsm)
+  filter(GSM %in% passing_gsm) %>%
+  select(GSM, GSE)
 
 write.table(gsm_gse_df, gsm_gse_df_file, col.names = T, row.names = F, sep = "\t", quote=F)
