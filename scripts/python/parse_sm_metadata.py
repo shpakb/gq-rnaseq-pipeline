@@ -67,12 +67,11 @@ gse_df = pd.DataFrame(columns=['GSE',
                                'LAST_UPDATE_DATE',
                                'SUMMARY',
                                'TYPE',
-                               'SUB_SERIES',
-                               'IS_SUPER_SERIES',
+                               'SUB_SERIES_OF',
+                               'SUPER_SERIES_OF',
                                'HAS_SINGLE_CELL',
                                'HAS_MULTICHANNEL',
-                               'MIXED',
-                               'GSMS'])
+                               'MIXED'])
 
 gse_df.to_csv(gseOutFile, sep="\t", index=False)
 gsm_df.to_csv(gsmOutFile, sep="\t", index=False)
@@ -111,37 +110,52 @@ for file in files:
         # GSE
         try:
             gse_title = re.findall(r'!Series_title\t"(.*)"', temp)[0]
-
-            gse_status = re.findall(r'!Series_status\t"(.*)"', temp)[0]
-
-            gse_submission_date = re.findall(r'!Series_submission_date\t"(.*)"', temp)[0]
-
-            gse_last_update_date = re.findall(r'!Series_last_update_date\t"(.*)"', temp)[0]
-
-            gse_summary = re.findall(r'!Series_summary\t"(.*)"', temp)[0]
-
-            gse_type = re.findall('!Series_type\t"(.*)"', temp)
-            gse_type = list(filter(None, gse_type))
-            # Check if multiple types of experiments are in same matrix
-            if len(list(set(gse_type))) != 1:
-                mixedFlag = True
-            else:
-                mixedFlag = False
-            gse_type = ";".join(gse_type)
-
-            try:
-                sub_series = re.findall(r'"SubSeries of: (.*)"', temp)
-                sub_series = ",".join(sub_series)
-            except IndexError:
-                sub_series = "NA"
-
-            try:
-                super_series = re.findall(r'"SuperSeries of: (.*)"', temp)
-                super_series = ",".join(super_series)
-            except IndexError:
-                super_series = "NA"
         except IndexError:
             next
+
+        try:
+            gse_status = re.findall(r'!Series_status\t"(.*)"', temp)[0]
+        except IndexError:
+            gse_status = "NA"
+
+        try:
+            gse_submission_date = re.findall(r'!Series_submission_date\t"(.*)"', temp)[0]
+        except IndexError:
+            gse_submission_date = "NA"
+
+        try:
+            gse_last_update_date = re.findall(r'!Series_last_update_date\t"(.*)"', temp)[0]
+        except IndexError:
+            gse_last_update_date = "NA"
+
+        try:
+            gse_summary = re.findall(r'!Series_summary\t"(.*)"', temp)[0]
+        except IndexError:
+            gse_summary = "NA"
+
+        gse_type = re.findall('!Series_type\t"(.*)"', temp)
+        gse_type = list(filter(None, gse_type))
+        if len(gse_type) == 0:
+            gse_type = "NA"
+
+        # Check if multiple types of experiments are in same matrix
+        if gse_type == "NA":
+            mixedFlag = "NA"
+        elif len(list(set(gse_type))) != 1:
+            mixedFlag = True
+        else:
+            mixedFlag = False
+        gse_type = ";".join(gse_type)
+
+        sub_series = re.findall(r'"SubSeries of: (.*)"', temp)
+        sub_series = ",".join(sub_series)
+        if len(sub_series) == 0:
+            sub_series = "NA"
+
+        super_series = re.findall(r'"SuperSeries of: (.*)"', temp)
+        super_series = ",".join(super_series)
+        if len(super_series) == 0:
+            super_series = "NA"
 
         # GSM
         pattern = r'!Sample_geo_accession\t(.*)'
@@ -223,12 +237,11 @@ for file in files:
                 'LAST_UPDATE_DATE': [gse_last_update_date],
                 'SUMMARY': [gse_summary],
                 'TYPE': [gse_type],
-                'SUB_SERIES': [sub_series],
-                'IS_SUPER_SERIES': [super_series],
+                'SUB_SERIES_OF': [sub_series],
+                'SUPER_SERIES_OF': [super_series],
                 'HAS_SINGLE_CELL': [SCFlag],
                 'HAS_MULTICHANNEL': [MCFlag],
-                'MIXED': [mixedFlag],
-                'GSM': [';'.join(gsm)]
-                }
+                'MIXED': [mixedFlag]}
+
         df = pd.DataFrame(data)
         df.to_csv(gseOutFile, sep="\t", mode='a', header=False, index=False)

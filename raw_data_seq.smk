@@ -9,7 +9,7 @@
 
 import pandas as pd
 
-configfile: "configs/config_hs.yaml"
+configfile: "configs/config_rn.yaml"
 
 rule series_matrices_seq_download:
     '''

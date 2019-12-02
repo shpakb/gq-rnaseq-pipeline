@@ -1,6 +1,7 @@
 ########################################################################################################################
 # Takes filter values and GSE GSM SRR GPL mapping tables. Also, takes list of priority GSE that passes regardless
 # Outputs filtering tables. List of passing gsm, and gse.
+# Samples with NA in annotation necessary for QC are removed
 
 suppressMessages(library(tidyverse))
 
@@ -45,15 +46,17 @@ cat(sprintf("Priority only flag: %s \n", as.character(priority_only_flag)))
 
 gsm_df <- read.csv(gsm_table_file, sep = "\t", header = T, stringsAsFactors = F)
 gsm_df$GSE <- gsm_df$GSE %>% str_extract("GSE\\d+")
-gsm_df[is.na(gsm_df)] <- "NA"
-gsm_df <- gsm_df %>% distinct()
 gsm_df <- gsm_df %>% select(c(GSM, GSE, ORGANISM, GPL, LIBRARY_SELECTION, LIBRARY_STRATEGY))
+gsm_df <- gsm_df %>% distinct()
 gsm_df$LAB <- organism
 gsm_df <- na.omit(gsm_df)
 
 gse_df <- read.csv(gse_table_file, sep = "\t", stringsAsFactors = F)
-gse_df <- gse_df %>% select(c(GSE, IS_SUPER_SERIES))
-gse_df <- na.omit(gse_df)
+gse_df <- gse_df %>% select(c(GSE, SUPER_SERIES_OF))
+gse_df$GSE <- gse_df$GSE %>% str_extract("GSE\\d+")
+gse_df <- distinct(gse_df)
+gse_df$IS_SUPER_SERIES <- !is.na(gse_df$SUPER_SERIES_OF)
+gse_df$SUPER_SERIES_OF <- NULL
 
 gpl_df <- read.csv(gpl_table_file, sep="\t")
 
@@ -64,50 +67,49 @@ gsm_spots_df <- aggregate(SPOTS~GSM, srr_df, sum)
 
 priority_gse_list <- readLines(priority_gse_list_file)
 ########################################################################################################################
-print(1)
 
 df <-
   gsm_df %>%
   select(GSM, GSE, ORGANISM) %>%
   distinct()
-print(2)
+
 cDNA <-
   gsm_df %>%
   filter(LIBRARY_SELECTION == "cDNA") %>%
   select(GSM) %>%
   unlist %>%
   unique
-print(3)
+
 rna_seq <-
   gsm_df %>%
   filter(LIBRARY_STRATEGY == "RNA-Seq") %>%
   select(GSM) %>%
   unlist %>%
   unique
-print(4)
+
 gpl_list <-
   gpl_df %>%
   filter(IS_ILLUMINA) %>%
   select(GPL) %>%
   unlist %>%
   unique
-print(5)
+
 illumina <-
   gsm_df %>%
   filter(GPL %in% gpl_list) %>%
   select(GSM) %>%
   unlist %>%
   unique
-print(6)
+
 super_series_list <-
   gse_df %>%
   filter(IS_SUPER_SERIES)   %>%
   select(GSE) %>%
   unlist %>%
   unique
-print(7)
+
 has_srr <- srr_df$GSM %>% unique
-print(8)
+
 spots_filtered <-
   gsm_spots_df %>%
   filter(SPOTS < max_n_spots) %>%
@@ -115,7 +117,7 @@ spots_filtered <-
   select(GSM) %>%
   unlist %>%
   unique
-print(9)
+
 # getting exclusive super super_series gsm
 a <- gsm_df %>% filter(GSE %in% super_series_list) %>% select(GSM) %>% unlist %>% unique()
 b <- gsm_df %>% filter(!(GSE %in% super_series_list)) %>% select(GSM) %>% unlist %>% unique()
@@ -138,7 +140,6 @@ df2 <-
   df1 %>%
   filter(IS_RIGHT_ORGANISM & NOT_SUPER_SERIES & CDNA & RNA_SEQ & IS_ILLUMINA & HAS_SRR & SPOTS_CUTOFF) %>%
   count(GSE)
-
 
 passing_gse <-
   df2 %>%
