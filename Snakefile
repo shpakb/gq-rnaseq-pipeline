@@ -11,10 +11,7 @@ import pandas as pd
 rule all:
     input:
         expand("out/{organism}/seq/data/filtering/postquant/gsm_stats.tsv",
-            organism=["hs", "mm", "rn"]),
-        # expand("out/{organism}/seq/data/filtering/prequant/gsm_gse.tsv",
-        #     organism=["hs", "mm", "rn"])
-
+            organism=["hs", "mm", "rn"])
 
 rule series_matrices_download:
     '''
