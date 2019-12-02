@@ -160,6 +160,7 @@ write.table(df1, gsm_filtering_file, col.names = T, row.names = F, sep = "\t", q
 
 # GSM to quantify:
 if(priority_only_flag){
+  print("Priority root")
   passing_gsm <-
     df1 %>%
     filter(
@@ -169,6 +170,7 @@ if(priority_only_flag){
     unlist %>%
     unique
 } else {
+  print("Normal root")
   passing_gsm <-
     df1 %>%
     filter(

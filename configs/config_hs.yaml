@@ -1,5 +1,5 @@
 ############################GENERAL#####################################################################################
-organism: "Homo_sapience"
+organism: "Homo_sapiens"
 
 # Push through pipeline only priority datasets
 priority_only_f: "True"
