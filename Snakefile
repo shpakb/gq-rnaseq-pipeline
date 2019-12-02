@@ -130,22 +130,19 @@ rule sra_fastqdump:
     input:
         "out/{organism}/seq/sra/{srr}.sra"
     output:
-        fastq_dir=temp(directory("out/{organism}/fastq/{srr}")),
-        complete_flag=temp("out/{organism}/fastq/{srr}_complete")
-    log:    "logs/{organism}/sra_fastqdump/{srr}.log"
+        fastq_dir=temp(directory("out/{organism}/seq/fastq/{srr}")),
+    log:    "logs/{organism}/seq/sra_fastqdump/{srr}.log"
     message: "fastq-dump {wildcards.srr}"
     conda: "envs/quantify.yaml"
     shell:
         "fastq-dump --outdir {output.fastq_dir} --split-3 {input}"
         " > {log} 2>&1 &&"
-        " touch {output.complete_flag}"
 
 rule fastq_kallisto:
     resources:
         mem_ram=lambda wildcards: config["quant_mem_ram"][wildcards.organism]
     priority: 2
     input:
-        rules.sra_fastqdump.output.complete_flag,
         fastq_dir="out/{organism}/seq/fastq/{srr}",
         refseq="input/{organism}/seq/refseq_kallisto"
     output:
@@ -157,7 +154,7 @@ rule fastq_kallisto:
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
-        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {config[refseq]} out/kallisto/{wildcards.srr}"
+        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {input.refseq} out/kallisto/{wildcards.srr}"
         " > {log} 2>&1"
 
 
@@ -177,7 +174,8 @@ rule srr_to_gsm:
         mem_ram=1
     input:
         srr_files=get_srr_files,
-        srr_df="out/{organism}/{platform}/data/filtering/prequant/srr_gsm.tsv"
+        srr_df="out/{organism}/{platform}/data/filtering/prequant/srr_gsm.tsv",
+        transcript_gene="input/{organism}/{platform}/transcript_gene.tsv"
     output:
         "out/{organism}/{platform}/gsms/{gsm}.tsv"
     log: "logs/{organism}/{platform}/srr_to_gsm/{gsm}.log"
@@ -185,7 +183,7 @@ rule srr_to_gsm:
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/srr_to_gsm.R {output.gsm_file} {config[probes_to_genes]} {input.srr_df}"
+        "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_df}"
         " > {log} 2>&1"
 
 def get_prequant_filtered_gsm_files(wildcards):

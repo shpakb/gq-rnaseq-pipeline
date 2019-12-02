@@ -39,14 +39,17 @@ snakemake --dryrun
 
 ### 6) Run pipeline in test mode on cluster(when on cluster): 
 ```bash
-snakemake -pr --use-conda --profile lsf --jobs 50 \
-    --jobscript lsf_jobscript.sh \
-    --resources downloading_res=4 --verbose --notemp
+snakemake -pr --use-conda --profile lsf --jobs 50\
+--jobscript lsf_jobscript.sh\
+ --resources download_res=4 writing_res=20\
+ --verbose
 ```
 
 Add when script is more or less stable:
 add: --restart-times 3 
 remove: --notemp 
+--verbose
+ -pr- gives command arguments overview
 
 - resources parameter specifies amount of resources pipeline can use. In this particular case load 100 and 
 each downloading job uses 50 "points" of load. So they can't be more than two downloading jobs simultaneously. 
