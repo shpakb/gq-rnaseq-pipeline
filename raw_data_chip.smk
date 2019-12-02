@@ -1,13 +1,10 @@
-# configfile: "configs/config_rn.yaml"
-#
-#
-#
+
 # checkpoint filter_chip_gse:
 #     '''
 #     Takes chip sm metadata
 #     Outputs {lab}_filtered.list with list of GSE ids that:
 #         1) Has exp df
-#         2) GPL in list of accepdf platforms be annotated with 3col
+#         2) GPL in list of accepted df platforms be annotated with 3col
 #     '''
 #     output: "out"
 #
@@ -15,7 +12,7 @@
 # rule series_matrices_chip_download:
 #     '''
 #     Parses search output .txt for all links and downloads them.
-#     wget -nc; Dowloaded files in folder doesn't reload. To update
+#     wget -nc; Downloaded files in folder doesn't reload. To update
 #     database just remove complete flag file.
 #     '''
 #     input:

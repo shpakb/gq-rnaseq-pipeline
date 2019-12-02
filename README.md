@@ -41,7 +41,7 @@ snakemake --dryrun
 ```bash
 snakemake -pr --use-conda --profile lsf --jobs 50 \
     --jobscript lsf_jobscript.sh \
-    --resources load=100 --verbose --notemp
+    --resources downloading_res=4 --verbose --notemp
 ```
 
 Add when script is more or less stable:

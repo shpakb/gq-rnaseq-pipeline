@@ -38,10 +38,6 @@ def parse_field(pattern, string, expectedNumber):
     except:
         return ["NA" for i in range(expectedNumber)]
 
-
-files = [f for f in listdir(inputDir) if isfile(join(inputDir, f))]
-files = [inputDir + f for f in files if ('GSE' in f)]
-
 gsm_df = pd.DataFrame(columns=['GSM',
                                'GSE',
                                'SUBMISSION_DATE',
@@ -75,6 +71,9 @@ gse_df = pd.DataFrame(columns=['GSE',
 
 gse_df.to_csv(gseOutFile, sep="\t", index=False)
 gsm_df.to_csv(gsmOutFile, sep="\t", index=False)
+
+files = [f for f in listdir(inputDir) if isfile(join(inputDir, f))]
+files = [inputDir + "/" + f for f in files if ('GSE' in f)]
 
 for file in files:
     gse = re.findall('(GSE\d+\-GPL\d+|GSE\d+)', file)[0]

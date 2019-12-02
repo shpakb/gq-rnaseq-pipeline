@@ -1,15 +1,17 @@
 ############################GENERAL#####################################################################################
-organism: "Homo_sapiens"
+organism:
+  hs: "Homo_sapiens"
+  mm: "Mus_musculus"
+  rn: "Rattus_norvegicus"
 
 # Push through pipeline only priority datasets
-priority_only_f: "True"
-############################INPUT_FILES#################################################################################
-geo_search_result_chip: "input/hs/gds_search_seq.txt"
-priority_gse_list: "input/hs/priority_gse_list"
-refseq: "input/hs/genprime_v29_nopar_kallisto"
-probes_to_genes: "input/hs/genprime_v29.gene_tr.tsv"
-ensamble_genesymbol_entrez: "input/hs/genprime_v29.gene_name_entrez.tsv"
-gpl_df: "input/gpl.tsv"
+priority_only_f: "False"
+
+#############################RESOURSES##################################################################################
+quant_mem_ram:
+  hs: 12
+  mm: 10
+  rn: 5
 
 #############################LINKS######################################################################################
 sra_accession_df: "ftp://ftp.ncbi.nlm.nih.gov/sra/reports/Metadata/SRA_Accessions.tab"
@@ -18,12 +20,25 @@ sra_accession_df: "ftp://ftp.ncbi.nlm.nih.gov/sra/reports/Metadata/SRA_Accession
 ## Pre-quantification filters
 quant_min_gsm: 2
 quant_max_gsm: 400
-# to distinguish between single cell and bulk samples are filtered by the number of spots per GSM
-min_spots_gsm: 1000000
-max_spots_gsm: 108716485
 
-## WGCNA filters
-min_exp_genes: 14000
+## Single cell QC
+# to distinguish between single cell and bulk samples are filtered by the number of spots per GSM
+
+min_spots:
+  hs: 1000000
+  mm: 1000000
+  rn: 1000000
+
+max_spots:
+  hs: 108716485
+  mm: 10000000
+  rn: 83583852
+
+min_exp_genes:
+  hs: 14000
+  mm: 6000
+  rn: 13000
+
 min_gse_gq: 8
 max_gse_gq: 200
 min_gse_pca: 2
