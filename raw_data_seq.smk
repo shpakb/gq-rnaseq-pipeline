@@ -154,7 +154,6 @@ rule fastq_kallisto:
 # This does guaranties that all necessary files for the task are there but doesn't allow to pass them as an input to
 # script.
 
-
 def get_srr_files(wildcards):
     srr_df_file = checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df
     srr_df = pd.read_csv(srr_df_file, sep="\t")
