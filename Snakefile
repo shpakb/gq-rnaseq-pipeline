@@ -155,7 +155,8 @@ rule fastq_kallisto:
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
-        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {input.refseq} out/kallisto/{wildcards.srr}"
+        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {input.refseq}"
+        " out/{wildcards.organism}/seq/kallisto/{wildcards.srr}" # output dir 
         " > {log} 2>&1"
 
 
