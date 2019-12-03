@@ -14,7 +14,7 @@ URLS=$(grep "FTP download" "$gdsResult" | grep GSE | perl -ne 'm/GEO( | \(.*\) )
 for i in $URLS
 do
     echo "Downloading from address $i"
-    wget -nc -P "$outDir" "$i"/matrix/*_series_matrix.txt.gz
+    wget -nc -nv -P "$outDir" "$i"/matrix/*_series_matrix.txt.gz
 done
 
 echo "All downloads are now complete!"

@@ -63,17 +63,15 @@ rule get_srr_df:
     input:
         rules.sra_accession_df_download.output
     output:
-        srr_df="out/data/srr_gsm_spots.tsv"
+        "out/data/srr_gsm_spots.tsv"
     message: "Cleaning SRR df..."
     log: "logs/get_srr_df.log"
     conda: "envs/r_scripts.yaml"
     shell:
-        "scripts/bash/clean_sra_accession_df.sh {input} {output.srr_df}"
+        "scripts/bash/clean_sra_accession_df.sh {input} {output}"
         " > {log} 2>&1 &&"
-        " Rscript scripts/R/clean_sra_accession_df.R {output.srr_df}"
+        " Rscript scripts/R/clean_sra_accession_df.R {output}"
         " >> {log} 2>&1"
-
-
 
 checkpoint prequant_filter:
     '''
@@ -84,7 +82,7 @@ checkpoint prequant_filter:
     development.
     '''
     input:
-        srr_df=rules.get_srr_df.output.srr_df,
+        srr_df=rules.get_srr_df.output,
         gse_df=rules.sm_seq_metadata.output.gse_df,
         gsm_df=rules.sm_seq_metadata.output.gsm_df,
         gpl_df="input/gpl.tsv",
@@ -108,7 +106,6 @@ checkpoint prequant_filter:
         " {output.gsm_gse_df} {input.priority_gse_list} {config[priority_only_f]}"
         " > {log} 2>&1"
 
-
 rule sra_download:
     resources:
         download_res=1,
@@ -128,7 +125,7 @@ rule sra_fastqdump:
     resources:
         writing_res=1
     input:
-        "out/{organism}/seq/sra/{srr}.sra"
+        rules.sra_download.output
     output:
         fastq_dir=temp(directory("out/{organism}/seq/fastq/{srr}")),
     log:    "logs/{organism}/seq/sra_fastqdump/{srr}.log"
@@ -144,12 +141,13 @@ rule fastq_kallisto:
         mem_ram=lambda wildcards: config["quant_mem_ram"][wildcards.organism]
     priority: 2
     input:
-        fastq_dir="out/{organism}/seq/fastq/{srr}",
+        fastq_dir=rules.sra_fastqdump.output,
+        # fastq_dir="out/{organism}/seq/fastq/{srr}",
         refseq="input/{organism}/seq/refseq_kallisto"
     output:
         h5=protected("out/{organism}/seq/kallisto/{srr}/abundance.h5"),
         tsv=protected("out/{organism}/seq/kallisto/{srr}/abundance.tsv"),
-        json=protected("out/{organism}/seq/{srr}/run_info.json")
+        json=protected("out/{organism}/seq/kallisto/{srr}/run_info.json")
     log: "logs/{organism}/seq/fastq_kallisto/{srr}.log"
     message: "Kallisto: {wildcards.srr}"
     conda: "envs/quantify.yaml"
@@ -158,7 +156,6 @@ rule fastq_kallisto:
         "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {input.refseq}"
         " out/{wildcards.organism}/seq/kallisto/{wildcards.srr}" # output dir 
         " > {log} 2>&1"
-
 
 def get_srr_files(wildcards):
     srr_df_file = checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df
@@ -176,16 +173,15 @@ rule srr_to_gsm:
         mem_ram=1
     input:
         srr_files=get_srr_files,
-        srr_df="out/{organism}/{platform}/data/filtering/prequant/srr_gsm.tsv",
+        srr_gsm_df=lambda wildcards: checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df,
         transcript_gene="input/{organism}/{platform}/transcript_gene.tsv"
     output:
         "out/{organism}/{platform}/gsms/{gsm}.tsv"
     log: "logs/{organism}/{platform}/srr_to_gsm/{gsm}.log"
     message: "Aggregating {wildcards.gsm}"
-    shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_df}"
+        "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_gsm_df}"
         " > {log} 2>&1"
 
 def get_prequant_filtered_gsm_files(wildcards):
@@ -198,13 +194,10 @@ def get_prequant_filtered_gsm_files(wildcards):
             platform=wildcards.platform)
     return gsm_files
 
-def get_gsm_gse_df(wildcards):
-    return checkpoints.prequant_filter.get(**wildcards).output.gsm_gse_df
-
 checkpoint postquant_filter:
     input:
         gsm_files=get_prequant_filtered_gsm_files,
-        gsm_gse_df=get_gsm_gse_df
+        gsm_gse_df=lambda wildcards: checkpoints.prequant_filter.get(**wildcards).output.gsm_gse_df
     output:
         gsm_stats_df="out/{organism}/{platform}/data/filtering/postquant/gsm_stats.tsv",
         gsm_gse_df="out/{organism}/{platform}/data/filtering/postquant/gsm_gse.tsv",
@@ -218,5 +211,3 @@ checkpoint postquant_filter:
         "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {params.min_exp_genes} {input.gsm_gse_df}"
         " {output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list} {input.gsm_files}"
         " > {log} 2>&1"
-
-
