@@ -39,10 +39,9 @@ snakemake --dryrun
 
 ### 6) Run pipeline in test mode on cluster(when on cluster): 
 ```bash
-snakemake -pr --use-conda --profile lsf --jobs 50\
+snakemake --use-conda --profile lsf --jobs 50\
 --jobscript lsf_jobscript.sh\
  --resources download_res=4 writing_res=20\
- --verbose
 ```
 
 Add when script is more or less stable:
@@ -50,6 +49,9 @@ add: --restart-times 3
 remove: --notemp 
 --verbose
  -pr- gives command arguments overview
+
+ --keep-going - Might be useful but be cautious, downloading if pipeline stack on fastq-dump we will quickly run out of 
+ disk space 
 
 - resources parameter specifies amount of resources pipeline can use. In this particular case load 100 and 
 each downloading job uses 50 "points" of load. So they can't be more than two downloading jobs simultaneously. 
