@@ -10,7 +10,7 @@ import pandas as pd
 
 rule all:
     input:
-        expand("out/{organism}/seq/data/filtering/postquant/gsm_stats.tsv",
+        expand("out/{organism}/seq/postquant_filter/passing_gse.list",
             organism=["hs", "mm", "rn"])
 
 rule series_matrices_download:
@@ -32,12 +32,12 @@ rule series_matrices_download:
         "scripts/bash/download_sm.sh {input} {output}"
         " > {log} 2>&1"
 
-rule sm_seq_metadata:
+rule sm_metadata:
     input:
         rules.series_matrices_download.output
     output:
-        gsm_df="out/{organism}/{platform}/data/metadata/gsm.tsv",
-        gse_df="out/{organism}/{platform}/data/metadata/gse.tsv"
+        gsm_df="out/{organism}/{platform}/sm_metadata/gsm.tsv",
+        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
     message: "Aggregating metadata from series matrices..."
     log: "logs/{organism}/{platform}/sm_seq_metadata.log"
     shell:
@@ -83,21 +83,21 @@ checkpoint prequant_filter:
     '''
     input:
         srr_df=rules.get_srr_df.output,
-        gse_df=rules.sm_seq_metadata.output.gse_df,
-        gsm_df=rules.sm_seq_metadata.output.gsm_df,
+        gse_df="out/{organism}/seq/sm_metadata/gse.tsv",
+        gsm_df="out/{organism}/seq/sm_metadata/gsm.tsv",
         gpl_df="input/gpl.tsv",
-        priority_gse_list="input/{organism}/{platform}/priority_gse.list"
+        priority_gse_list="input/{organism}/seq/priority_gse.list"
     params:
         min_spots=lambda wildcards: config["min_spots"][wildcards.organism],
         max_spots=lambda wildcards: config["max_spots"][wildcards.organism],
         organism=lambda wildcards: config["organism"][wildcards.organism]
     output:
-        gsm_gse_df="out/{organism}/{platform}/data/filtering/prequant/gsm_gse.tsv",
-        gsm_filtering_df="out/{organism}/{platform}/data/filtering/prequant/gsm_filtering.tsv",
-        passing_gsm_list="out/{organism}/{platform}/data/filtering/prequant/passing_gsm.list",
-        srr_gsm_df="out/{organism}/{platform}/data/filtering/prequant/srr_gsm.tsv"
+        gsm_gse_df="out/{organism}/seq/prequant_filter/gsm_gse.tsv",
+        gsm_filtering_df="out/{organism}/seq/prequant_filter/gsm_filtering.tsv",
+        passing_gsm_list="out/{organism}/seq/prequant_filter/passing_gsm.list",
+        srr_gsm_df="out/{organism}/seq/prequant_filter/srr_gsm.tsv"
     message: "Pre-quantification filtering..."
-    log: "logs/{organism}/{platform}/prequant_filter.log"
+    log: "logs/{organism}/seq/prequant_filter.log"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/prequant_filter.R {input.gse_df} {input.gsm_df} {input.gpl_df} {input.srr_df}"
@@ -158,7 +158,7 @@ rule fastq_kallisto:
         " > {log} 2>&1"
 
 def get_srr_files(wildcards):
-    srr_df_file = checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df
+    srr_df_file = "out/{organism}/seq/prequant_filter/srr_gsm.tsv"
     srr_df = pd.read_csv(srr_df_file, sep="\t")
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_files = \
@@ -188,7 +188,7 @@ def get_prequant_filtered_gsm_files(wildcards):
     filtered_gsm_list = checkpoints.prequant_filter.get(**wildcards).output.passing_gsm_list
     gsm_list = [line.rstrip('\n') for line in open(filtered_gsm_list)]
     gsm_files=\
-        expand("out/{organism}/{platform}/gsms/{gsm}.tsv",
+        expand("out/{organism}/seq/gsms/{gsm}.tsv",
             gsm=gsm_list,
             organism=wildcards.organism,
             platform=wildcards.platform)
@@ -199,13 +199,13 @@ checkpoint postquant_filter:
         gsm_files=get_prequant_filtered_gsm_files,
         gsm_gse_df=lambda wildcards: checkpoints.prequant_filter.get(**wildcards).output.gsm_gse_df
     output:
-        gsm_stats_df="out/{organism}/{platform}/data/filtering/postquant/gsm_stats.tsv",
-        gsm_gse_df="out/{organism}/{platform}/data/filtering/postquant/gsm_gse.tsv",
-        passing_gse_list="out/{organism}/{platform}/data/filtering/postquant/passing_gse.list"
+        gsm_stats_df="out/{organism}/seq/postquant_filter/gsm_stats.tsv",
+        gsm_gse_df="out/{organism}/seq/postquant_filter/gsm_gse.tsv",
+        passing_gse_list="out/{organism}/seq/postquant_filter/passing_gse.list"
     message: "Post quantification filtering."
     params:
         min_exp_genes=lambda wildcards: config["min_exp_genes"][wildcards.organism]
-    log: "logs/{organism}/{platform}/postquant_filter.log"
+    log: "logs/{organism}/seq/postquant_filter.log"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {params.min_exp_genes} {input.gsm_gse_df}"
