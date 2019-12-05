@@ -32,7 +32,7 @@ conda env create --file ./envs/quantify.yaml --name snakemake && \
     source activate snakemake
 ```
 
-Test run: 
+Test run (local): 
 ```bash
 snakemake -pr --notemp --use-conda --verbose
 ```
@@ -44,8 +44,8 @@ snakemake --dryrun
 ### 6) Run pipeline in test mode on cluster(when on cluster): 
 ```bash
 snakemake --use-conda --profile lsf --jobs 50\
---jobscript lsf_jobscript.sh\
- --resources download_res=4 writing_res=20\
+ --jobscript lsf_jobscript.sh\
+ --resources download_res=4 writing_res=20
 ```
 
 Add when script is more or less stable:

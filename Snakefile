@@ -9,12 +9,14 @@ rule all:
             organism=["hs", "mm", "rn"],
             platform=["chip", "seq"]),
         "out/data/srr_gsm_spots.tsv"
+        # expand("out/{organism}/seq/sm_metadata/gsm.tsv",
+        #     organism=["rn"])
 
 
-rule series_matrices_download:
+rule sm_download:
     '''
     Takes search output .txt, parses out all links and downloads them. (wget -nc) Existing up to date files out dir
-    doesn't reload.
+    doesn't reload. Writes completion flag in the end.
     '''
     input:
         "input/{organism}/{platform}/gds_search_result.txt"
@@ -23,24 +25,28 @@ rule series_matrices_download:
         writing_res=1,
         mem_ram=2
     output:
-        # Not sure if download is stable enough but for now just leaving this derictory as protected. Will see.
-        protected(directory("out/{organism}/{platform}/series_matrices")),
+        "flags/{organism}/{platform}/sm_download.flag"
+    params:
+        sm_download_dir="out/{organism}/{platform}/series_matrices"
     message: "Downloading series matrices for RNA-seq..."
-    log: "logs/{organism}/{platform}/series_matrices_seq_download.log"
+    log: "logs/{organism}/{platform}/sm_download.log"
     shell:
-        "scripts/bash/download_sm.sh {input} {output}"
+        "scripts/bash/download_sm.sh {input} {params.sm_download_dir} &&"
+        " touch {output}"
         " > {log} 2>&1"
 
 rule sm_metadata:
     input:
-        rules.series_matrices_download.output
+        rules.sm_download.output
     output:
         gsm_df="out/{organism}/{platform}/sm_metadata/gsm.tsv",
         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
+    params:
+        sm_download_dir=rules.sm_download.params.sm_download_dir
     message: "Aggregating metadata from series matrices..."
     log: "logs/{organism}/{platform}/sm_seq_metadata.log"
     shell:
-        "python scripts/python/parse_sm_metadata.py {input} {output.gse_df} {output.gsm_df}"
+        "python scripts/python/parse_sm_metadata.py {params.sm_download_dir} {output.gse_df} {output.gsm_df}"
         " > {log} 2>&1"
 
 rule sra_accession_df_download:
@@ -249,19 +255,27 @@ rule push_gse:
     output: "out/{organism}/seq/push_gse_flag"
     shell: "touch {output}"
 
-
-
 ################################################CHIP_ROOT###############################################################
 checkpoint prefilter_chip_sm:
     '''
-    Filters out SM by number of GSM, GPL
+    Takes SM folder and gse.tsv. 
+    Filters out SM by number of GSM, GPL. If passing first two, enters the SM dir and opens the corresponded SM file. 
+    Checks: 
+        1) If exp table is present
+        2) If it can be read properly 
+        3) If passes logAverage linAverage QC (might be something else) 
+    Outputs sm qc_df where columns contain values for QC and the last column PASSING
     '''
     input:
-        gse_df="out/{organism}/chip/sm_metadata/gse.tsv"
+        gse_df=rules.sm_metadata.output.gse_df,
+        sm_dir=rules.sm_download.output,
+        gpl_dir="input/{organism}/chip/3col"
     output:
-        "out/{organism}/chip/prefilter_chip_sm/accepted_sm.list"
+        sm_qc_df="out/{organism}/chip/prefilter_chip_sm/qc_df.tsv",
+        qc_values_file="out/{organism}/chip/prefilter_chip_sm/qc_params.txt"
     shell:
-        "touch {output}"
+        "Rscript chip_qc.R {input.gse_df} {input.sm_dir} {input.gpl_dir} {output.sm_qc_df}"
+        " config[min_gsm_chip] config[max_gsm_chip]"
 
 def prefiltered_chip_sm(wildcards):
     accepted_sm_list_file=checkpoints.prefilter_chip_sm.get(**wildcards).output
@@ -271,3 +285,16 @@ def prefiltered_chip_sm(wildcards):
             sm=sms,
             organism=wildcards.organism)
     return sm_files
+
+rule get_exp_matrix:
+    '''
+    Trues to extract expression matrix from SM. Performs QC. If fail to extract matrix writes failure reason right to
+    the expression table file. 
+    '''
+    input: "input"
+    output: "output"
+
+checkpoint finalize_exp_tables:
+    '''
+    Gets 
+    '''
