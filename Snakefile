@@ -4,13 +4,15 @@ import pandas as pd
 
 rule all:
     input:
-        expand("out/{organism}/seq/prequant_filter/gsm_gse.tsv", organism=["hs", "mm", "rn"]),
+        expand("out/{organism}/seq/prequant_filter/gsm_gse.tsv",
+            organism=["hs", "mm", "rn"]),
         expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
             organism=["hs", "mm", "rn"],
             platform=["chip", "seq"]),
         "out/data/srr_gsm_spots.tsv"
-        # expand("out/{organism}/seq/sm_metadata/gsm.tsv",
-        #     organism=["rn"])
+        # expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
+        #     organism=["rn"],
+        #     platform=["chip", "seq"])
 
 
 rule sm_download:
@@ -31,9 +33,9 @@ rule sm_download:
     message: "Downloading series matrices for RNA-seq..."
     log: "logs/{organism}/{platform}/sm_download.log"
     shell:
-        "scripts/bash/download_sm.sh {input} {params.sm_download_dir} &&"
+        "scripts/bash/download_sm.sh {input} {params.sm_download_dir} "
+        " > {log} 2>&1 &&"
         " touch {output}"
-        " > {log} 2>&1"
 
 rule sm_metadata:
     input:
@@ -256,7 +258,7 @@ rule push_gse:
     shell: "touch {output}"
 
 ################################################CHIP_ROOT###############################################################
-checkpoint prefilter_chip_sm:
+checkpoint extract_exp_mat:
     '''
     Takes SM folder and gse.tsv. 
     Filters out SM by number of GSM, GPL. If passing first two, enters the SM dir and opens the corresponded SM file. 
@@ -268,23 +270,29 @@ checkpoint prefilter_chip_sm:
     '''
     input:
         gse_df=rules.sm_metadata.output.gse_df,
-        sm_dir=rules.sm_download.output,
         gpl_dir="input/{organism}/chip/3col"
+    params:
+        sm_download_dir=rules.sm_download.params.sm_download_dir
     output:
         sm_qc_df="out/{organism}/chip/prefilter_chip_sm/qc_df.tsv",
-        qc_values_file="out/{organism}/chip/prefilter_chip_sm/qc_params.txt"
+        qc_values_file="out/{organism}/chip/prefilter_chip_sm/qc_params.txt",
+        exp_df_dir=directory("out/{organism}/chip/exp_mat")
+    log: "logs/{organism}/chip/extract_exp_mat.log"
+
     shell:
-        "Rscript chip_qc.R {input.gse_df} {input.sm_dir} {input.gpl_dir} {output.sm_qc_df}"
-        " config[min_gsm_chip] config[max_gsm_chip]"
+        "Rscript chip_qc.R {input.gse_df} {params.sm_download_dir} {input.gpl_dir} {output.sm_qc_df}"
+        " {output.qc_values_file} config[min_gsm_chip] config[max_gsm_chip]"
+        " > {log} 2>&1"
 
 def prefiltered_chip_sm(wildcards):
-    accepted_sm_list_file=checkpoints.prefilter_chip_sm.get(**wildcards).output
-    sms=[line.rstrip('\n') for line in open(accepted_sm_list_file)]
-    sm_files = \
-        expand("out/{organism}/chip/series_matrices/{sm}_series_matrix.txt.gz",
-            sm=sms,
+    sm_qc_df_file=checkpoints.extract_exp_mat.get(**wildcards).output.sm_qc_df
+    sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
+    exp_mat_tags = sm_qc_df[sm_qc_df['PASSED']==True]["TAG"].tolist()
+    exp_mat_files = \
+        expand("out/{organism}/chip/exp_mat/{tag}.tsv",
+            tag=exp_mat_tags,
             organism=wildcards.organism)
-    return sm_files
+    return exp_mat_files
 
 rule get_exp_matrix:
     '''
