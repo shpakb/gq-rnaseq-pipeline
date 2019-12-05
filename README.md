@@ -1,5 +1,9 @@
 # GQ rnaseq quantification pipeline
 
+# Current input files:
+1) GGS searches 04.12.2019
+2) ....
+
 Pipeline quantifies SRR files and aggregates them first to GSM and then to GSM matrices.
 
 ### 1) Run docker container:

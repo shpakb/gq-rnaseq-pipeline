@@ -1,17 +1,15 @@
-# include: "raw_data_seq.smk"
-# include: "raw_data_chip.smk"
-# include: "gds_check.smk"
-# include: "gq_processing.smk"
-# include: "pca_processing.smk"
-
 configfile: "config.yaml"
 
 import pandas as pd
 
 rule all:
     input:
-        expand("out/{organism}/seq/postquant_filter/passing_gse.list",
-            organism=["hs", "mm", "rn"])
+        expand("out/{organism}/seq/prequant_filter/gsm_gse.tsv", organism=["hs", "mm", "rn"]),
+        expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
+            organism=["hs", "mm", "rn"],
+            platform=["chip", "seq"]),
+        "out/data/srr_gsm_spots.tsv"
+
 
 rule series_matrices_download:
     '''
@@ -25,7 +23,8 @@ rule series_matrices_download:
         writing_res=1,
         mem_ram=2
     output:
-        directory("out/{organism}/{platform}/series_matrices"),
+        # Not sure if download is stable enough but for now just leaving this derictory as protected. Will see.
+        protected(directory("out/{organism}/{platform}/series_matrices")),
     message: "Downloading series matrices for RNA-seq..."
     log: "logs/{organism}/{platform}/series_matrices_seq_download.log"
     shell:
@@ -158,14 +157,13 @@ rule fastq_kallisto:
         " > {log} 2>&1"
 
 def get_srr_files(wildcards):
-    srr_df_file = "out/{organism}/seq/prequant_filter/srr_gsm.tsv"
+    srr_df_file = f"out/{wildcards.organism}/seq/prequant_filter/srr_gsm.tsv"
     srr_df = pd.read_csv(srr_df_file, sep="\t")
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_files = \
-        expand("out/{organism}/{platform}/kallisto/{srr}/abundance.tsv",
+        expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
         srr=srr_list,
-        organism=wildcards.organism,
-        platform=wildcards.platform)
+        organism=wildcards.organism)
     return srr_files
 
 rule srr_to_gsm:
@@ -173,30 +171,29 @@ rule srr_to_gsm:
         mem_ram=1
     input:
         srr_files=get_srr_files,
-        srr_gsm_df=lambda wildcards: checkpoints.prequant_filter.get(**wildcards).output.srr_gsm_df,
-        transcript_gene="input/{organism}/{platform}/transcript_gene.tsv"
+        srr_gsm_df="out/{organism}/seq/prequant_filter/srr_gsm.tsv",
+        transcript_gene="input/{organism}/seq/transcript_gene.tsv"
     output:
-        "out/{organism}/{platform}/gsms/{gsm}.tsv"
-    log: "logs/{organism}/{platform}/srr_to_gsm/{gsm}.log"
+        "out/{organism}/seq/gsms/{gsm}.tsv"
+    log: "logs/{organism}/seq/srr_to_gsm/{gsm}.log"
     message: "Aggregating {wildcards.gsm}"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_gsm_df}"
         " > {log} 2>&1"
 
-def get_prequant_filtered_gsm_files(wildcards):
+def prequant_filtered_gsm_files(wildcards):
     filtered_gsm_list = checkpoints.prequant_filter.get(**wildcards).output.passing_gsm_list
     gsm_list = [line.rstrip('\n') for line in open(filtered_gsm_list)]
     gsm_files=\
         expand("out/{organism}/seq/gsms/{gsm}.tsv",
             gsm=gsm_list,
-            organism=wildcards.organism,
-            platform=wildcards.platform)
+            organism=wildcards.organism)
     return gsm_files
 
 checkpoint postquant_filter:
     input:
-        gsm_files=get_prequant_filtered_gsm_files,
+        gsm_files=prequant_filtered_gsm_files,
         gsm_gse_df=lambda wildcards: checkpoints.prequant_filter.get(**wildcards).output.gsm_gse_df
     output:
         gsm_stats_df="out/{organism}/seq/postquant_filter/gsm_stats.tsv",
@@ -211,3 +208,66 @@ checkpoint postquant_filter:
         "Rscript scripts/R/postquant_filter.R {config[quant_min_gsm]} {params.min_exp_genes} {input.gsm_gse_df}"
         " {output.gsm_stats_df} {output.gsm_gse_df} {output.passing_gse_list} {input.gsm_files}"
         " > {log} 2>&1"
+
+def postquant_gsms_for_gse(wildcards):
+    gsm_gse_df_file = f"out/{wildcards.organism}/seq/postquant_filter/gsm_gse.tsv"
+    gsm_gse_df = pd.read_csv(gsm_gse_df_file, sep="\t")
+    gsms = gsm_gse_df[gsm_gse_df['GSE']==wildcards.gse]["GSM"].tolist()
+    gsm_files = \
+        expand("out/{organism}/seq/gsms/{gsm}.tsv",
+            gsm=gsms,
+            organism=wildcards.organism)
+    return gsm_files
+
+rule gsm_to_gse:
+    input:
+        gsm_files=postquant_gsms_for_gse,
+        gse_df="out/{organism}/seq/data/filtering/postquant/gsm_gse.tsv",
+        gene_mapping="input/{organism}/ensamble_genesymbol_entrez.tsv}"
+    output:
+        gse="out/{organism}/seq/gses/{gse}.tsv"
+    log: "logs/{organism}/gsm_to_gse/{gse}.log"
+    message: "Aggregating {wildcards.gse}"
+    shadow: "shallow"
+    conda: "envs/r_scripts.yaml"
+    shell:
+        "Rscript scripts/R/gsm_to_gse.R {output.gse} out/{wildcards.organism}/seq/gsms {input.gene_mapping} "
+        " {input.gse_df}"
+        " > {log} 2>&1"
+
+def get_postquant_passing_gse(wildcards):
+    filtered_gse_list = checkpoints.postquant_filter.get(**wildcards).output.passing_gse_list
+    gses = [line.rstrip('\n') for line in open(filtered_gse_list)]
+    gse_files = \
+        expand("out/{organism}/seq/gses/{gsm}.tsv",
+            gsm=gses,
+            organism=wildcards.organism)
+    return gse_files
+
+rule push_gse:
+    input: get_postquant_passing_gse
+    output: "out/{organism}/seq/push_gse_flag"
+    shell: "touch {output}"
+
+
+
+################################################CHIP_ROOT###############################################################
+checkpoint prefilter_chip_sm:
+    '''
+    Filters out SM by number of GSM, GPL
+    '''
+    input:
+        gse_df="out/{organism}/chip/sm_metadata/gse.tsv"
+    output:
+        "out/{organism}/chip/prefilter_chip_sm/accepted_sm.list"
+    shell:
+        "touch {output}"
+
+def prefiltered_chip_sm(wildcards):
+    accepted_sm_list_file=checkpoints.prefilter_chip_sm.get(**wildcards).output
+    sms=[line.rstrip('\n') for line in open(accepted_sm_list_file)]
+    sm_files = \
+        expand("out/{organism}/chip/series_matrices/{sm}_series_matrix.txt.gz",
+            sm=sms,
+            organism=wildcards.organism)
+    return sm_files
