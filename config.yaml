@@ -47,6 +47,11 @@ max_gse_pca: 200
 min_gsm_chip: 2
 max_gsm_chip: 400
 
+chip_logmax_max: 20
+chip_linmax_max: 2000
+chip_logav_min: 4
+chip_logav_max: 10
+min_genes: 6000
 
 #############################WGCNA_PARAMS###############################################################################
 # Number of genes considered in clusterization

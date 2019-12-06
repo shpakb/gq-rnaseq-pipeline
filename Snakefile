@@ -1,25 +1,32 @@
 configfile: "config.yaml"
 
+# TODO: PCA query on rna-seq
+# TODO: aggregate metadata on kallisto runs in df and choose version of callisto used for most of the samples.
+
+
 import pandas as pd
 
 rule all:
     input:
+        expand("out/{organism}/chip/sm_qc/qc_df.tsv",
+            organism=["hs", "mm", "rn"]),
         expand("out/{organism}/seq/prequant_filter/gsm_gse.tsv",
             organism=["hs", "mm", "rn"]),
         expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
             organism=["hs", "mm", "rn"],
             platform=["chip", "seq"]),
-        "out/data/srr_gsm_spots.tsv"
-        # expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
-        #     organism=["rn"],
-        #     platform=["chip", "seq"])
-
+        "out/data/srr_gsm_spots.tsv",
+        expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
+            organism=["rn"],
+            platform=["chip"])
 
 rule sm_download:
     '''
     Takes search output .txt, parses out all links and downloads them. (wget -nc) Existing up to date files out dir
     doesn't reload. Writes completion flag in the end.
     '''
+    resources:
+        time=24
     input:
         "input/{organism}/{platform}/gds_search_result.txt"
     resources:
@@ -30,7 +37,7 @@ rule sm_download:
         "flags/{organism}/{platform}/sm_download.flag"
     params:
         sm_download_dir="out/{organism}/{platform}/series_matrices"
-    message: "Downloading series matrices for RNA-seq..."
+    message: "Downloading series matrices for {wildcards.organism} {wildcards.platform}..."
     log: "logs/{organism}/{platform}/sm_download.log"
     shell:
         "scripts/bash/download_sm.sh {input} {params.sm_download_dir} "
@@ -45,7 +52,7 @@ rule sm_metadata:
         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
     params:
         sm_download_dir=rules.sm_download.params.sm_download_dir
-    message: "Aggregating metadata from series matrices..."
+    message: "Aggregating metadata from series matrices {wildcards.organism} {wildcards.platform} ..."
     log: "logs/{organism}/{platform}/sm_seq_metadata.log"
     shell:
         "python scripts/python/parse_sm_metadata.py {params.sm_download_dir} {output.gse_df} {output.gsm_df}"
@@ -103,7 +110,7 @@ checkpoint prequant_filter:
         gsm_filtering_df="out/{organism}/seq/prequant_filter/gsm_filtering.tsv",
         passing_gsm_list="out/{organism}/seq/prequant_filter/passing_gsm.list",
         srr_gsm_df="out/{organism}/seq/prequant_filter/srr_gsm.tsv"
-    message: "Pre-quantification filtering..."
+    message: "Pre-quantification filtering for {wildcards.organism}..."
     log: "logs/{organism}/seq/prequant_filter.log"
     conda: "envs/r_scripts.yaml"
     shell:
@@ -121,7 +128,7 @@ rule sra_download:
     priority: 3
     output: temp("out/{organism}/seq/sra/{srr}.sra")
     log:    "logs/{organism}/seq/sra_download/{srr}.log"
-    message: "Downloading {wildcards.srr}"
+    message: "Downloading {wildcards.srr} ({wildcards.organism})..."
     shadow: "shallow"
     conda: "envs/quantify.yaml"
     shell:
@@ -136,7 +143,7 @@ rule sra_fastqdump:
     output:
         fastq_dir=temp(directory("out/{organism}/seq/fastq/{srr}")),
     log:    "logs/{organism}/seq/sra_fastqdump/{srr}.log"
-    message: "fastq-dump {wildcards.srr}"
+    message: "fastq-dump {wildcards.srr} ({wildcards.organism})"
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
@@ -156,7 +163,7 @@ rule fastq_kallisto:
         tsv=protected("out/{organism}/seq/kallisto/{srr}/abundance.tsv"),
         json=protected("out/{organism}/seq/kallisto/{srr}/run_info.json")
     log: "logs/{organism}/seq/fastq_kallisto/{srr}.log"
-    message: "Kallisto: {wildcards.srr}"
+    message: "Kallisto: {wildcards.srr} ({wildcards.organism})"
     conda: "envs/quantify.yaml"
     shadow: "shallow"
     shell:
@@ -184,7 +191,7 @@ rule srr_to_gsm:
     output:
         "out/{organism}/seq/gsms/{gsm}.tsv"
     log: "logs/{organism}/seq/srr_to_gsm/{gsm}.log"
-    message: "Aggregating {wildcards.gsm}"
+    message: "Aggregating {wildcards.gsm} ({wildcards.organism})..."
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_gsm_df}"
@@ -207,7 +214,7 @@ checkpoint postquant_filter:
         gsm_stats_df="out/{organism}/seq/postquant_filter/gsm_stats.tsv",
         gsm_gse_df="out/{organism}/seq/postquant_filter/gsm_gse.tsv",
         passing_gse_list="out/{organism}/seq/postquant_filter/passing_gse.list"
-    message: "Post quantification filtering."
+    message: "Post quantification filtering ({wildcards.organism}) ..."
     params:
         min_exp_genes=lambda wildcards: config["min_exp_genes"][wildcards.organism]
     log: "logs/{organism}/seq/postquant_filter.log"
@@ -235,7 +242,7 @@ rule gsm_to_gse:
     output:
         gse="out/{organism}/seq/gses/{gse}.tsv"
     log: "logs/{organism}/gsm_to_gse/{gse}.log"
-    message: "Aggregating {wildcards.gse}"
+    message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
     shadow: "shallow"
     conda: "envs/r_scripts.yaml"
     shell:
@@ -268,20 +275,31 @@ checkpoint extract_exp_mat:
         3) If passes logAverage linAverage QC (might be something else) 
     Outputs sm qc_df where columns contain values for QC and the last column PASSING
     '''
+    resources:
+        time=24
     input:
-        gse_df=rules.sm_metadata.output.gse_df,
-        gpl_dir="input/{organism}/chip/3col"
+        gse_df="out/{organism}/chip/sm_metadata/gse.tsv",
+        gpl_dir="input/{organism}/chip/platform_annotation"
     params:
-        sm_download_dir=rules.sm_download.params.sm_download_dir
+        sm_download_dir="out/{organism}/chip/series_matrices",
+        min_gsm=config[ "min_gsm_chip"],
+        max_gsm=config["max_gsm_chip"],
+        logav_min=config["chip_logav_min"],
+        logav_max=config["chip_logav_max"],
+        linmax_max=config["chip_linmax_max"],
+        logmax_max=config["chip_logmax_max"],
+        min_genes=config["min_genes"]
     output:
-        sm_qc_df="out/{organism}/chip/prefilter_chip_sm/qc_df.tsv",
-        qc_values_file="out/{organism}/chip/prefilter_chip_sm/qc_params.txt",
+        sm_qc_df="out/{organism}/chip/sm_qc/qc_df.tsv",
+        qc_values_file="out/{organism}/chip/sm_qc/qc_params.txt",
         exp_df_dir=directory("out/{organism}/chip/exp_mat")
     log: "logs/{organism}/chip/extract_exp_mat.log"
-
+    message: "Extracting expression tables for microarrays ({wildcards.organism})..."
+    conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript chip_qc.R {input.gse_df} {params.sm_download_dir} {input.gpl_dir} {output.sm_qc_df}"
-        " {output.qc_values_file} config[min_gsm_chip] config[max_gsm_chip]"
+        "Rscript scripts/R/get_exp_table.R {input.gse_df} {params.sm_download_dir} {input.gpl_dir} {output.exp_df_dir}"
+        " {output.sm_qc_df} {output.qc_values_file} {params.min_gsm} {params.max_gsm} {params.logav_min}"
+        " {params.logav_max} {params.linmax_max} {params.logmax_max} {params.min_genes}"
         " > {log} 2>&1"
 
 def prefiltered_chip_sm(wildcards):

@@ -34,7 +34,7 @@ conda env create --file ./envs/quantify.yaml --name snakemake && \
 
 Test run (local): 
 ```bash
-snakemake -pr --notemp --use-conda --verbose
+bsub -Is  -q docker-interactive  -a 'docker(biolabs/snakemake:5.8.1_conda4.7.12)' /bin/bash
 ```
 Dry run(graph eval):
 ```bash
@@ -66,3 +66,11 @@ and copying.
 
 Run test snakemake:
 snakemake --snakefile=test.smk
+
+-----------------------------
+PCA query: 
+1) Do PCA on all rna-seq
+2) Make PCA.
+3) Query one dataset by all of it's component
+4) Look individually at ranked lists
+5) Combine several lists in to joint list and look at the ranking. Re-rank by summing the rungs.

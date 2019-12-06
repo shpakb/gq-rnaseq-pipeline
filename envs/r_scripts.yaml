@@ -1,5 +1,7 @@
 chanels:
   - anaconda
+  - bioconda
 dependencies:
   - r-essentials
   - r-base
+  - r-wgcna
