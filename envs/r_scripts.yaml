@@ -4,4 +4,4 @@ chanels:
 dependencies:
   - r-essentials
   - r-base
-  - r-wgcna
+  #- r-wgcna
