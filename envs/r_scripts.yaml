@@ -1,7 +1,7 @@
 chanels:
   - anaconda
-  - bioconda
+  - bioconda/label/gcc7
 dependencies:
   - r-essentials
   - r-base
-  #- r-wgcna
+  - r-wgcna

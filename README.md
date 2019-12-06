@@ -63,6 +63,8 @@ each downloading job uses 50 "points" of load. So they can't be more than two do
 - now pipeline outputs all the files right in to directory with scripts. No need to go through all steps with symlinks 
 and copying. 
 
+For test run:
+snakemake -pr --notemp --use-conda --verbose
 
 Run test snakemake:
 snakemake --snakefile=test.smk
