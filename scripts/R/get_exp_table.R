@@ -2,8 +2,6 @@
 suppressMessages(library(tidyverse))
 suppressMessages(library(WGCNA))
 suppressMessages(library(stringr))
-# suppressMessages(library(reshape))
-# suppressMessages(library(limma))
 
 args <- commandArgs(TRUE)
 
@@ -177,10 +175,10 @@ sm_qc_df$PASSED <- FALSE
 for(sm in filtered_sm){
   tryCatch(
   {
+    print(sm)
     sm_file <- paste0(sm_input_folder, "/", sm, "_series_matrix.txt.gz")
     in.con <- gzfile(sm_file)
     wholeFile <- readLines(in.con)
-    print(length(wholeFile))
     gplId <- which(grepl("!Sample_platform_id", wholeFile))
     gplId <- gsub(".*(GPL\\d+).*", "\\1", wholeFile[gplId])
     gpl <-  paste0(gpl_input_folder, "/", gplId, ".3col.gz")
@@ -192,7 +190,6 @@ for(sm in filtered_sm){
 
     if (!file.exists(gpl))
     {
-      print(gplId)
       cat(sprintf("GPL %s not supported", gplId))
       sm_qc_df[sm_qc_df$GSE == sm,]$GPL <- gplId
       next
@@ -207,7 +204,7 @@ for(sm in filtered_sm){
       print("No expression table found.")
       next
     }
-    print(1)
+
     expressionTable <-
       read.table(
         in.con,
@@ -219,7 +216,6 @@ for(sm in filtered_sm){
         nrows = tableEnd - tableStart - 2,
         stringsAsFactors = F
       )
-    print(2)
 
     expressionTable <- as.matrix(expressionTable)
 
@@ -270,6 +266,15 @@ for(sm in filtered_sm){
       next
     }
 
+    rownames(exp) <- exp$Entrez_ID
+    exp$Entrez_ID <- NULL
+
+    exp$max2 <- apply(exp, 1, FUN = max2)
+    exp <- exp[order(exp$max2, decreasing = T), ]
+    exp$max2 <- NULL
+
+    exp$ENTREZ <- rownames(EXP)
+
     write.table(
       exp,
       file = paste0(exp_mat_out_dir, "/", tag, ".tsv"),
@@ -283,7 +288,6 @@ for(sm in filtered_sm){
 
   }, error = function(e)
       {
-        print("HEY")
         print(e$message)
       }
   )
@@ -292,7 +296,6 @@ for(sm in filtered_sm){
 
 write(qc_values, qc_values_out_file)
 
-print(sm_qc_df)
 
 write.table(
       sm_qc_df,

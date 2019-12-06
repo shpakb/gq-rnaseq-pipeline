@@ -1,7 +1,9 @@
 chanels:
-- anaconda
-- bioconda/label/cf201901
+  - anaconda
+  - bioconda
+  - conda-forge
+  - r
 dependencies:
-- r-essentials
-- r-base
-- r-wgcna
+  - r-wgcna=1.68
+  - r-essentials
+  - r-base
