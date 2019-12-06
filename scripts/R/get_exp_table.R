@@ -1,8 +1,9 @@
 ####################################ARGUMENTS#########################
+print(1)
 suppressMessages(library(tidyverse))
 suppressMessages(library(WGCNA))
 suppressMessages(library(stringr))
-
+print(2)
 args <- commandArgs(TRUE)
 
 gse_df_file <- args[1]
@@ -21,7 +22,7 @@ logav_max <- as.double(args[10])
 linmax_max <- as.double(args[11])
 logmax_max <- as.double(args[12])
 min_genes <- as.integer(args[13])
-
+print(3)
 cat(sprintf("GSE df input file: %s \n", gse_df_file))
 cat(sprintf("SM input folder: %s \n", sm_input_folder))
 cat(sprintf("GPL annotations input folder: %s \n", gpl_input_folder))
