@@ -25,13 +25,11 @@ rule sm_download:
     doesn't reload. Writes completion flag in the end.
     '''
     resources:
-        time=60*24*2
-    input:
-        "input/{organism}/{platform}/gds_search_result.txt"
-    resources:
+        time=60*24*2,
         download_res=1,
         writing_res=1,
-        mem_ram=2
+    input:
+        "input/{organism}/{platform}/gds_search_result.txt"
     output:
         "flags/{organism}/{platform}/sm_download.flag"
     params:
