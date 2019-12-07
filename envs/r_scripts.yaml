@@ -2,8 +2,7 @@ channels:
   - anaconda
   - bioconda
 dependencies:
-  - r=3.6.0
-  - r-wgcna=1.68
+  - r-wgcna
   - libopenblas
   - r-tidyverse
   - r-stringr
