@@ -269,11 +269,13 @@ for(sm in filtered_sm){
     rownames(exp) <- exp$Entrez_ID
     exp$Entrez_ID <- NULL
 
+    exp <- exp %>% round(3)
+
     exp$max2 <- apply(exp, 1, FUN = max2)
     exp <- exp[order(exp$max2, decreasing = T), ]
     exp$max2 <- NULL
 
-    exp$ENTREZ <- rownames(EXP)
+    exp$ENTREZ <- rownames(exp)
 
     write.table(
       exp,

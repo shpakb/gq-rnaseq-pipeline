@@ -4,5 +4,5 @@ channels:
 dependencies:
   - r-wgcna=1.68
   - libopenblas
-  - r-essentials
-  - r-base
+  - r-tidyverse
+  - r-stringr
