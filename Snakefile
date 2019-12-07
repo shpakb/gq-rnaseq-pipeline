@@ -8,16 +8,16 @@ import pandas as pd
 
 rule all:
     input:
-        # expand("out/{organism}/chip/sm_qc/qc_df.tsv",
-        #     organism=["hs", "mm", "rn"]),
-        # expand("out/{organism}/seq/prequant_filter/gsm_gse.tsv",
-        #     organism=["hs", "mm", "rn"]),
-        # expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
-        #     organism=["hs", "mm", "rn"],
-        #     platform=["chip", "seq"]),
-        # "out/data/srr_gsm_spots.tsv",
         expand("out/{organism}/chip/sm_qc/qc_df.tsv",
-            organism=["rn"])
+            organism=["hs", "mm", "rn"]),
+        expand("out/{organism}/seq/prequant_filter/gsm_gse.tsv",
+            organism=["hs", "mm", "rn"]),
+        expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
+            organism=["hs", "mm", "rn"],
+            platform=["chip", "seq"]),
+        "out/data/srr_gsm_spots.tsv",
+        expand("out/{organism}/chip/sm_qc/qc_df.tsv",
+            organism=["hs", "mm", "rn"])
 
 rule sm_download:
     '''
@@ -25,7 +25,7 @@ rule sm_download:
     doesn't reload. Writes completion flag in the end.
     '''
     resources:
-        time=1440
+        time=60*24*2
     input:
         "input/{organism}/{platform}/gds_search_result.txt"
     resources:
@@ -275,7 +275,8 @@ checkpoint extract_exp_mat:
     Outputs sm qc_df where columns contain values for QC and the last column PASSING
     '''
     resources:
-        time=1440
+        # two days is appropriate
+        time=60*24*2
     input:
         gse_df="out/{organism}/chip/sm_metadata/gse.tsv",
         gpl_dir="input/{organism}/chip/platform_annotation"
