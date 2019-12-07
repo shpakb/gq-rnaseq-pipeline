@@ -299,7 +299,7 @@ checkpoint extract_exp_mat:
         "Rscript scripts/R/get_exp_table.R {input.gse_df} {params.sm_download_dir} {input.gpl_dir} {output.exp_df_dir}"
         " {output.sm_qc_df} {output.qc_values_file} {params.min_gsm} {params.max_gsm} {params.logav_min}"
         " {params.logav_max} {params.linmax_max} {params.logmax_max} {params.min_genes}"
-        " > {log} 2>&1"
+        #" > {log} 2>&1"
 
 def prefiltered_chip_sm(wildcards):
     sm_qc_df_file=checkpoints.extract_exp_mat.get(**wildcards).output.sm_qc_df
