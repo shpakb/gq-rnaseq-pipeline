@@ -1,9 +1,8 @@
 channels:
   - anaconda
   - bioconda
-  - conda-forge
-  - r
 dependencies:
   - r-wgcna=1.68
+  - libopenblas
   - r-essentials
   - r-base
