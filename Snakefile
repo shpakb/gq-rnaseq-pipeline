@@ -20,7 +20,7 @@ rule all:
         #     platform=["chip", "seq"]),
         # "out/data/srr_gsm_spots.tsv",
         expand("out/{organism}/chip/exp_qc_df.tsv",
-            organism=["rn"])
+            organism=["hs", "mm", "rn"])
         # expand("out/{organism}/{platform}/wgcna_stats.tsv",
         #     organism=["hs", "mm", "rn"],
         #     platform=["chip", "seq"])
