@@ -32,10 +32,6 @@ conda env create --file ./envs/quantify.yaml --name snakemake && \
     source activate snakemake
 ```
 
-Test run (local): 
-```bash
-bsub -Is  -q docker-interactive  -a 'docker(biolabs/snakemake:5.8.1_conda4.7.12)' /bin/bash
-```
 Dry run(graph eval):
 ```bash
 snakemake --dryrun

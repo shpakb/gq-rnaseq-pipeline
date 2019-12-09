@@ -139,7 +139,6 @@ tryCatch(
     qc_df$HAS_EXP_MAT <- FALSE
   } else{
     qc_df$HAS_EXP_MAT <- TRUE
-    qc_df$N_GSM <- ncol(exp)
   }
 
   expressionTable <-
@@ -202,6 +201,8 @@ tryCatch(
     sep = "\t"
   )
 
+  qc_df$N_GSM <- ncol(exp)
+
   qc_df$PROCESSED <- TRUE
 
 }, error = function(e)
@@ -219,3 +220,5 @@ write.table(
   row.names = F,
   sep = "\t"
     )
+
+print("Done.")

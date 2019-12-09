@@ -20,7 +20,7 @@ rule all:
         #     platform=["chip", "seq"]),
         # "out/data/srr_gsm_spots.tsv",
         expand("out/{organism}/chip/exp_qc_df.tsv",
-            organism=["hs", "mm", "rn"])
+            organism=["rn"])
         # expand("out/{organism}/{platform}/wgcna_stats.tsv",
         #     organism=["hs", "mm", "rn"],
         #     platform=["chip", "seq"])
@@ -273,21 +273,8 @@ rule push_gse:
 rule extract_exp_mat:
     '''
     Extracts expression matrices from files and writes QC report for downstream filtering.
-    qc_df: TAG N_GSM IS_SUPER_SERIES HAS_EXP_MAT GPL LOGAV LOGMAX LINMAX N_GENES
+    qc_df: TAG N_GSM HAS_EXP_MAT GPL LOGAV LOGMAX LINMAX N_GENES
     Writes empty exp table if error produced.
-    
-    filtering expression:
-      if (!(!any(is.na(c(
-        logav, logmax, linmax
-      ))) &&
-      logav >= logav_min &&
-      logav <= logav_max &&
-      linmax >= linmax_max &&
-      logmax < logmax_max))
-  {
-    cat("Failed sanity check.")
-    next
-  }
     '''
     input:
         sm="out/{organism}/chip/series_matrices/{tag}_series_matrix.txt.gz",
@@ -329,10 +316,13 @@ rule get_exp_mat_qc_df:
         get_filtered_sm_qc_files
     output:
         "out/{organism}/{platform}/exp_qc_df.tsv"
+    message: "Getting expression matrices QC df ({wildcards.organism})..."
+    log: "logs/{organism}/{platform}/get_exp_mat_qc_df.log"
     run:
         qc_df_list=[pd.read_csv(qc_file,sep='\t') for qc_file in input]
         qc_df=pd.concat(qc_df_list)
         qc_df.to_csv(str(output),sep='\t',index=False)
+        print("Done.")
 
 
 ###############################################WGCNA####################################################################
@@ -351,14 +341,13 @@ def get_exp_mat_for_wgcna(wildcards):
     if wildcards.platform=="chip":
         sm_qc_df_file = rules.extract_exp_mat.output.sm_qc_df # WON'T WORK
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
-        sm_qc_df = sm_qc_df[sm_qc_df['PASSED']==True]
+        sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
         sm_qc_df = sm_qc_df[sm_qc_df['N_GSM']>=config['min_gsm_gq'] | sm_qc_df['N_GSM']<=config['max_gsm_gq']]
         exp_mat_tags = sm_qc_df["TAG"].tolist()
         exp_mat_files = \
             expand("out/{organism}/chip/exp_mat/{tag}.tsv",
                 tag=exp_mat_tags,
                 organism=wildcards.organism)
-
     elif wildcards.platform=="seq":
         gsm_gse_df_file = checkpoints.postquant_filter.get(**wildcards).output.gsm_gse_df
         gse_df = pd.read_csv(gsm_gse_df_file, sep="\t")
