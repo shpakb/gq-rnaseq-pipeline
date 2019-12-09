@@ -201,7 +201,7 @@ tryCatch(
     sep = "\t"
   )
 
-  qc_df$N_GSM <- ncol(exp)
+  qc_df$N_GSM <- ncol(exp) - 1
 
   qc_df$PROCESSED <- TRUE
 
