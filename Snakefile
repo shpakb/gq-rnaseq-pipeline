@@ -293,7 +293,7 @@ rule extract_exp_mat:
 def get_filtered_sm_qc_files(wildcards):
     gse_df_file = checkpoints.extract_sm_metadata.get(**wildcards).output.gse_df
     gse_df = pd.read_csv(gse_df_file, sep="\t")
-    gse_df = gse_df[(gse_df['NUMBER_GSM']>=config['min_gsm']) | (gse_df['NUMBER_GSM']<=config['max_gsm'])]
+    gse_df = gse_df[(gse_df['NUMBER_GSM']>=config['min_gsm']) & (gse_df['NUMBER_GSM']<=config['max_gsm'])]
     # getting list of supported GPL
     gpl_dir = f"input/{wildcards.organism}/chip/platform_annotation"
     gpl_list = [f for f in listdir(gpl_dir) if isfile(join(gpl_dir, f))]
@@ -336,13 +336,13 @@ def get_exp_mat_for_wgcna(wildcards):
         logav_max=config["chip_logav_max"],
         linmax_max=config["chip_linmax_max"],
         logmax_max=config["chip_logmax_max"],
-        min_genes=config["min_genes"]
     """
     if wildcards.platform=="chip":
         sm_qc_df_file = rules.extract_exp_mat.output.sm_qc_df # WON'T WORK
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
         sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
-        sm_qc_df = sm_qc_df[sm_qc_df['N_GSM']>=config['min_gsm_gq'] | sm_qc_df['N_GSM']<=config['max_gsm_gq']]
+        sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=config['min_gsm_gq']) & (sm_qc_df['N_GSM']<=config['max_gsm_gq'])]
+        sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=config['logav_min']) & (sm_qc_df['LOGAV']<=config['logav_max'])]
         exp_mat_tags = sm_qc_df["TAG"].tolist()
         exp_mat_files = \
             expand("out/{organism}/chip/exp_mat/{tag}.tsv",
