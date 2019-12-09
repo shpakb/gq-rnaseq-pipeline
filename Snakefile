@@ -20,7 +20,7 @@ rule all:
         #     platform=["chip", "seq"]),
         # "out/data/srr_gsm_spots.tsv",
         expand("out/{organism}/chip/exp_qc_df.tsv",
-            organism=["hs", "mm", "rn"])
+            organism=["rn"])
         # expand("out/{organism}/{platform}/wgcna_stats.tsv",
         #     organism=["hs", "mm", "rn"],
         #     platform=["chip", "seq"])
@@ -328,14 +328,9 @@ rule get_exp_mat_qc_df:
 ###############################################WGCNA####################################################################
 def get_exp_mat_for_wgcna(wildcards):
     """
-    Some qc logic and rooting for choosing files for downstream WGCNA.
+    QC logic and rooting for choosing files for downstream WGCNA.
     Writes folder with 3 files. Modules, eigengenes and WGCNA stats. If WGCNA failed, Modules and Iegenegenes files are
     empty and stats contains reason WGCNA failed.
-    params:
-        logav_min=config["chip_logav_min"],
-        logav_max=config["chip_logav_max"],
-        linmax_max=config["chip_linmax_max"],
-        logmax_max=config["chip_logmax_max"],
     """
     if wildcards.platform=="chip":
         sm_qc_df_file = rules.extract_exp_mat.output.sm_qc_df # WON'T WORK
@@ -343,6 +338,8 @@ def get_exp_mat_for_wgcna(wildcards):
         sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
         sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=config['min_gsm_gq']) & (sm_qc_df['N_GSM']<=config['max_gsm_gq'])]
         sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=config['logav_min']) & (sm_qc_df['LOGAV']<=config['logav_max'])]
+        sm_qc_df = sm_qc_df[sm_qc_df['LIMAX']<=config['linmax_max']]
+        sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=config['logmax_max']]
         exp_mat_tags = sm_qc_df["TAG"].tolist()
         exp_mat_files = \
             expand("out/{organism}/chip/exp_mat/{tag}.tsv",

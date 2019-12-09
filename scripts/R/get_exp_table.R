@@ -117,6 +117,7 @@ qc_df <-
   LINMAX="NA",
   LOGMAX="NA",
   N_GENES="NA",
+  HAS_NEGATIVE_VALUES="NA",
   PROCESSED=FALSE
 )
 
@@ -197,9 +198,11 @@ tryCatch(
     file = exp_mat_out_file,
     quote = F,
     col.names = T,
-    row.names = T,
+    row.names = F,
     sep = "\t"
   )
+
+  qc_df$HAS_NEGATIVE_VALUES <- any(exp < 0)
 
   qc_df$N_GSM <- ncol(exp) - 1
 
