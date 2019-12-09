@@ -5,31 +5,16 @@ suppressMessages(library(stringr))
 
 args <- commandArgs(TRUE)
 
-gse_df_file <- args[1]
-sm_input_folder <- args[2]
-gpl_input_folder <- args[3]
-exp_mat_out_dir <- args[4]
+sm_input_file <- args[1]
+gpl_input_folder <- args[2]
+exp_mat_out_file <- args[3] # put file in folder with name of GSE. Give file proper name.????
+qc_out_file <- args[4]
 
-qc_df_out_file <- args[5]
-qc_values_out_file <- args[6]
-
-min_n_gsm <- as.integer(args[7])
-max_n_gsm <- as.integer(args[8])
-
-logav_min <- as.double(args[9])
-logav_max <- as.double(args[10])
-linmax_max <- as.double(args[11])
-logmax_max <- as.double(args[12])
-min_genes <- as.integer(args[13])
-
-cat(sprintf("GSE df input file: %s \n", gse_df_file))
-cat(sprintf("SM input folder: %s \n", sm_input_folder))
+cat(sprintf("SM input file: %s \n", sm_input_file))
 cat(sprintf("GPL annotations input folder: %s \n", gpl_input_folder))
-cat(sprintf("Expression matrices output dir: %s \n", exp_mat_out_dir))
-cat(sprintf("QC values output file: %s \n", qc_df_out_file))
-cat(sprintf("QC df out file: %s \n", qc_values_out_file))
+cat(sprintf("Expression matrices output file: %s \n", exp_mat_out_file))
+cat(sprintf("QC output file: %s \n", qc_out_file))
 
-dir.create(exp_mat_out_dir)
 ####################################UTILS###############################################################################
 linearizeDataset <- function(ge) {
   if (is_logscale(ge))
@@ -120,190 +105,117 @@ readGPLTable <- function(gpl) {
   df
 }
 
-
 ############################################EXECUTION###################################################################
-supported_gpl_list <-
-  list.files(gpl_input_folder) %>%
-  str_extract("GPL\\d+")
-
-qc_values <- sprintf(
-"Min GSM: %g
-Max GSM: %g
-Log average min: %g
-Log average max: %g
-Linear max max: %g
-Log max max: %g
-Min number of genes: %i
-Supported GPL: %s \n",
-  min_n_gsm,
-  max_n_gsm,
-  logav_min,
-  logav_max,
-  linmax_max,
-  logmax_max,
-  min_genes,
-  paste(supported_gpl_list, collapse = " ")
+#TAG N_GSM IS_SUPER_SERIES HAS_EXP_MAT GPL LOGAV LOGMAX LINMAX N_GENES
+qc_df <-
+  data.frame(
+  TAG=sm_input_file %>% str_extract("GSE\\d+_GPL\\d+|GSE\\d+"),
+  N_GSM="NA",
+  GPL="NA",
+  HAS_EXP_MAT="NA",
+  LOGAV="NA",
+  LINMAX="NA",
+  LOGMAX="NA",
+  N_GENES="NA",
+  PROCESSED=FALSE
 )
 
-cat(qc_values)
+tryCatch(
+{
+  in.con <- gzfile(sm_input_file)
+  wholeFile <- readLines(in.con)
+  gplId <- which(grepl("!Sample_platform_id", wholeFile))
+  gplId <- gsub(".*(GPL\\d+).*", "\\1", wholeFile[gplId])
+  gpl <-  paste0(gpl_input_folder, "/", gplId, ".3col.gz")
+  qc_df$GPL <- gplId
 
-sm_qc_df <-
-  read.csv(gse_df_file, sep = "\t") %>%
-  select(GSE, NUMBER_GSM, GPL, SUPER_SERIES_OF)
+  tableStart <-
+    which(grepl("!series_matrix_table_begin", wholeFile))
+  tableEnd <-
+    which(grepl("!series_matrix_table_end", wholeFile))
 
-sm_qc_df$IS_SUPER_SERIES <-
-  !is.na(sm_qc_df$SUPER_SERIES_OF)
-sm_qc_df$SUPER_SERIES_OF <- NULL
+  if ((tableEnd - tableStart) < 10 ){
+    print("No expression table found.")
+    qc_df$HAS_EXP_MAT <- FALSE
+  } else{
+    qc_df$HAS_EXP_MAT <- TRUE
+    qc_df$N_GSM <- ncol(exp)
+  }
 
-filtered_sm <-
-  sm_qc_df %>%
-  filter(NUMBER_GSM > min_n_gsm & NUMBER_GSM < max_n_gsm) %>%
-  filter(GPL %in% supported_gpl_list) %>%
-  filter(!IS_SUPER_SERIES) %>%
-  select(GSE) %>%
-  unlist %>%
-  unique
-
-sm_qc_df$TAG <- "NA"
-sm_qc_df$HAS_EXP_MAT <- "NA"
-sm_qc_df$LOGAV <- "NA"
-sm_qc_df$LINMAX <- "NA"
-sm_qc_df$LOGMAX <- "NA"
-sm_qc_df$N_GENES <- "NA"
-sm_qc_df$PASSED <- FALSE
-
-for(sm in filtered_sm){
-  tryCatch(
-  {
-    print(sm)
-    sm_file <- paste0(sm_input_folder, "/", sm, "_series_matrix.txt.gz")
-    in.con <- gzfile(sm_file)
-    wholeFile <- readLines(in.con)
-    gplId <- which(grepl("!Sample_platform_id", wholeFile))
-    gplId <- gsub(".*(GPL\\d+).*", "\\1", wholeFile[gplId])
-    gpl <-  paste0(gpl_input_folder, "/", gplId, ".3col.gz")
-    # it is necessary that tag has gpl
-    tag <- sm %>% str_extract("GSE\\d+")
-    tag <- paste0(tag, "_", gplId)
-
-    sm_qc_df[sm_qc_df$GSE == sm,]$tag <- tag
-
-    if (!file.exists(gpl))
-    {
-      cat(sprintf("GPL %s not supported", gplId))
-      sm_qc_df[sm_qc_df$GSE == sm,]$GPL <- gplId
-      next
-    }
-
-    tableStart <-
-      which(grepl("!series_matrix_table_begin", wholeFile))
-    tableEnd <-
-      which(grepl("!series_matrix_table_end", wholeFile))
-
-    if ((tableEnd - tableStart) < 10 ){
-      print("No expression table found.")
-      next
-    }
-
-    expressionTable <-
-      read.table(
-        in.con,
-        sep = "\t",
-        header = 1,
-        row.names = 1,
-        comment.char = "",
-        skip = tableStart,
-        nrows = tableEnd - tableStart - 2,
-        stringsAsFactors = F
-      )
-
-    expressionTable <- as.matrix(expressionTable)
-
-    exp <- linearizeDataset(expressionTable)
-    explog <- logDataset(expressionTable)
-
-    logav <- mean(explog) %>% round(1)
-    logmax <- max(explog) %>% round(1)
-    linmax <- max(exp) %>% round()
-
-    sm_qc_df[sm_qc_df$GSE == sm,]$LOGAV <- logav
-    sm_qc_df[sm_qc_df$GSE == sm,]$LOGMAX <- logmax
-    sm_qc_df[sm_qc_df$GSE == sm,]$LINMAX <- linmax
-
-    if (!(!any(is.na(c(
-          logav, logmax, linmax
-        ))) &&
-        logav >= 4 &&
-        logav <= 10 &&
-        linmax >= 2000 &&
-        logmax < 20))
-    {
-      cat("Failed sanity check.")
-      next
-    }
-
-    gplTable <- readGPLTable(gpl)
-
-    exp <- cbind(gplTable[rownames(exp),], exp)
-
-    exp <-
-      exp[!(row.names(exp) %in% c("NONE", "NA", "none", "NULL")),]
-
-    exp <-
-      collapseRows(exp[4:ncol(exp)], exp$Entrez_ID, rownames(exp))
-
-    exp <- exp$datETcollapsed
-
-    exp <-
-      exp[!(row.names(exp) %in% c("NONE", "NA", "none", "NULL")), ]
-
-    exp <- as.data.frame(exp)
-
-    sm_qc_df[sm_qc_df$GSE == sm,]$N_GENES <- nrow(exp)
-
-    if (nrow(exp) < min_genes){
-      cat("Failed. Number of genes less than threshold.")
-      next
-    }
-
-    rownames(exp) <- exp$Entrez_ID
-    exp$Entrez_ID <- NULL
-
-    exp <- exp %>% round(3)
-
-    exp$max2 <- apply(exp, 1, FUN = max2)
-    exp <- exp[order(exp$max2, decreasing = T), ]
-    exp$max2 <- NULL
-
-    exp$ENTREZ <- rownames(exp)
-
-    write.table(
-      exp,
-      file = paste0(exp_mat_out_dir, "/", tag, ".tsv"),
-      quote = F,
-      col.names = T,
-      row.names = T,
-      sep = "\t"
+  expressionTable <-
+    read.table(
+      in.con,
+      sep = "\t",
+      header = 1,
+      row.names = 1,
+      comment.char = "",
+      skip = tableStart,
+      nrows = tableEnd - tableStart - 2,
+      stringsAsFactors = F
     )
 
-    sm_qc_df[sm_qc_df$GSE == sm,]$PASSED <- TRUE
+  expressionTable <- as.matrix(expressionTable)
 
-  }, error = function(e)
-      {
-        print(e$message)
-      }
+  exp <- linearizeDataset(expressionTable)
+  explog <- logDataset(expressionTable)
+
+  qc_df$LOGAV <- mean(explog) %>% round(1)
+  qc_df$LOGMAX <- max(explog) %>% round(1)
+  qc_df$LINMAX <- max(exp) %>% round()
+
+  gplTable <- readGPLTable(gpl)
+
+  exp <- cbind(gplTable[rownames(exp),], exp)
+
+  exp <-
+    exp[!(row.names(exp) %in% c("NONE", "NA", "none", "NULL")),]
+
+  exp <-
+    collapseRows(exp[4:ncol(exp)], exp$Entrez_ID, rownames(exp))
+
+  exp <- exp$datETcollapsed
+
+  exp <-
+    exp[!(row.names(exp) %in% c("NONE", "NA", "none", "NULL")), ]
+
+  exp <- as.data.frame(exp)
+
+  qc_df$N_GENES <- nrow(exp)
+
+  rownames(exp) <- exp$Entrez_ID
+  exp$Entrez_ID <- NULL
+
+  exp <- exp %>% round(3)
+
+  exp$max2 <- apply(exp, 1, FUN = max2)
+  exp <- exp[order(exp$max2, decreasing = T), ]
+  exp$max2 <- NULL
+
+  exp$ENTREZ <- rownames(exp)
+
+  write.table(
+    exp,
+    file = exp_mat_out_file,
+    quote = F,
+    col.names = T,
+    row.names = T,
+    sep = "\t"
   )
 
-}
+  qc_df$PROCESSED <- TRUE
 
-write(qc_values, qc_values_out_file)
-
+}, error = function(e)
+    {
+      print(e$message)
+      write("", exp_mat_out_file)
+    }
+)
 
 write.table(
-      sm_qc_df,
-      file = qc_df_out_file,
-      quote = F,
-      col.names = T,
-      row.names = F,
-      sep = "\t"
+  qc_df,
+  file = qc_out_file,
+  quote = F,
+  col.names = T,
+  row.names = F,
+  sep = "\t"
     )
