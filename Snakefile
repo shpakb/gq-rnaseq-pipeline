@@ -20,7 +20,7 @@ rule all:
         #     platform=["chip", "seq"]),
         # "out/data/srr_gsm_spots.tsv",
         expand("out/{organism}/chip/exp_qc_df.tsv",
-            organism=["rn"])
+            organism=["hs", "mm", "rn"])
         # expand("out/{organism}/{platform}/wgcna_stats.tsv",
         #     organism=["hs", "mm", "rn"],
         #     platform=["chip", "seq"])
@@ -273,7 +273,7 @@ rule push_gse:
 rule extract_exp_mat:
     '''
     Extracts expression matrices from files and writes QC report for downstream filtering.
-    qc_df: TAG N_GSM HAS_EXP_MAT GPL LOGAV LOGMAX LINMAX N_GENES
+    gq_df: TAG	N_GSM	GPL	HAS_EXP_MAT	LOGAV	LINMAX	LOGMAX	N_GENES	HAS_NEGATIVE_VALUES	PROCESSED
     Writes empty exp table if error produced.
     '''
     input:
