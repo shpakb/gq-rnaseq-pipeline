@@ -368,10 +368,10 @@ rule pca:
 rule pca_push:
     input: lambda wildcards:
         expand("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds",
-            organism=["rn"],
-            platform=['chip'],
-            n_genes=config['pca_n_genes'],
-            scale=config['pca_scale'],
+            organism=wildcards.organism,
+            platform=wildcards.platform,
+            n_genes=wildcards.n_genes,
+            scale=wildcards.scale,
             tag=get_filtered_exp_mat_files(wildcards, int(config["pca_min_gsm"]),
             int(config["pca_max_gsm"]), int(wildcards.n_genes)))
     output: "flags/{organism}/{platform}/pca/{n_genes}_{scale}/flag"
