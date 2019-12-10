@@ -50,7 +50,7 @@ checkpoint extract_sm_metadata:
     params:
         sm_download_dir=rules.sm_download.params.sm_download_dir
     message: "Aggregating metadata from series matrices {wildcards.organism} {wildcards.platform} ..."
-    log: "logs/{organism}/{platform}/sm_seq_metadata.log"
+    log: "logs/{organism}/{platform}/sm_metadata.log"
     shell:
         "python scripts/python/parse_sm_metadata.py {params.sm_download_dir} {output.gse_df} {output.gsm_df}"
         " > {log} 2>&1"
@@ -273,8 +273,8 @@ rule extract_exp_mat:
         sm="out/{organism}/chip/series_matrices/{tag}_series_matrix.txt.gz",
         gpl_dir="input/{organism}/chip/platform_annotation"
     output:
-        exp_table="out/{organism}/chip/exp_mat/{tag}.tsv",
-        qc_report="out/{organism}/chip/exp_mat/{tag}_qc.tsv"
+        exp_table=protected("out/{organism}/chip/exp_mat/{tag}.tsv"),
+        qc_report=protected("out/{organism}/chip/exp_mat/{tag}_qc.tsv")
     log: "logs/{organism}/chip/extract_exp_mat/{tag}.log"
     message: "Extracting expression table from {wildcards.tag}_series_matrix.txt.gz ({wildcards.organism})..."
     conda: "envs/r_scripts.yaml"
