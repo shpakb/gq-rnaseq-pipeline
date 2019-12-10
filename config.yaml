@@ -51,6 +51,13 @@ chip_logav_min: 4
 chip_logav_max: 10
 min_genes: 6000
 
+#############################PCA_PARAMS#################################################################################
+# parameters shold be in string format so that they can be passed to folders names
+pca_min_gsm: 2
+pca_max_gsm: 400
+pca_n_genes: "6000"
+pca_scale: "log"
+
 #############################WGCNA_PARAMS###############################################################################
 # parameters should be written in camel case, because they go to folder name for each particular setting.
 # Scripts should be adapted to parse this arguments
