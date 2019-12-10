@@ -109,7 +109,7 @@ readGPLTable <- function(gpl) {
 #TAG N_GSM IS_SUPER_SERIES HAS_EXP_MAT GPL LOGAV LOGMAX LINMAX N_GENES
 qc_df <-
   data.frame(
-  TAG=sm_input_file %>% str_extract("GSE\\d+_GPL\\d+|GSE\\d+"),
+  TAG=sm_input_file %>% str_extract("GSE\\d+-GPL\\d+|GSE\\d+"),
   N_GSM="NA",
   GPL="NA",
   HAS_EXP_MAT="NA",

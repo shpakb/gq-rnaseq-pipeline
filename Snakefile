@@ -269,6 +269,8 @@ rule extract_exp_mat:
     gq_df: TAG	N_GSM	GPL	HAS_EXP_MAT	LOGAV	LINMAX	LOGMAX	N_GENES	HAS_NEGATIVE_VALUES	PROCESSED
     Writes empty exp table if error produced.
     '''
+    resources:
+        time=40
     input:
         sm="out/{organism}/chip/series_matrices/{tag}_series_matrix.txt.gz",
         gpl_dir="input/{organism}/chip/platform_annotation"
