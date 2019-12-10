@@ -11,19 +11,15 @@ import re
 
 rule all:
     input:
-        # expand("out/{organism}/chip/sm_qc/qc_df.tsv",
+        # expand("out/{organism}/chip/exp_qc_df.tsv",
         #     organism=["hs", "mm", "rn"]),
-        # expand("out/{organism}/seq/prequant_filter/gsm_gse.tsv",
-        #     organism=["hs", "mm", "rn"]),
-        # expand("out/{organism}/{platform}/sm_metadata/gsm.tsv",
-        #     organism=["hs", "mm", "rn"],
-        #     platform=["chip", "seq"]),
-        # "out/data/srr_gsm_spots.tsv",
-        expand("out/{organism}/chip/exp_qc_df.tsv",
-            organism=["hs", "mm", "rn"])
-        # expand("out/{organism}/{platform}/wgcna_stats.tsv",
-        #     organism=["hs", "mm", "rn"],
-        #     platform=["chip", "seq"])
+        expand("out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}_stats.tsv",
+            organism=['rn'],
+            platform=['chip'],
+            n_genes=config['wgcna_n_genes'],
+            cor_type=config['wgcna_cor'],
+            network=config['wgcna_nt'],
+            scale=config['scale'])
 
 rule sm_download:
     '''
@@ -289,7 +285,6 @@ rule extract_exp_mat:
         "Rscript scripts/R/get_exp_table.R {input.sm} {input.gpl_dir} {output.exp_table} {output.qc_report}"
         " > {log} 2>&1"
 
-
 def get_filtered_sm_qc_files(wildcards):
     gse_df_file = checkpoints.extract_sm_metadata.get(**wildcards).output.gse_df
     gse_df = pd.read_csv(gse_df_file, sep="\t")
@@ -311,7 +306,7 @@ def get_filtered_sm_qc_files(wildcards):
 
     return filtered_sm_qc_files
 
-rule get_exp_mat_qc_df:
+checkpoint get_exp_mat_qc_df:
     input:
         get_filtered_sm_qc_files
     output:
@@ -324,68 +319,110 @@ rule get_exp_mat_qc_df:
         qc_df.to_csv(str(output),sep='\t',index=False)
         print("Done.")
 
-
 ###############################################WGCNA####################################################################
-def get_exp_mat_for_wgcna(wildcards):
+def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
+                               logav_min=config["chip_logav_min"], logav_max=config["chip_logav_max"],
+                               logmax_max=config["chip_logmax_max"], linmax_max=config["chip_linmax_max"],
+                               allow_negative_val=False):
     """
-    QC logic and rooting for choosing files for downstream WGCNA.
-    Writes folder with 3 files. Modules, eigengenes and WGCNA stats. If WGCNA failed, Modules and Iegenegenes files are
-    empty and stats contains reason WGCNA failed.
+    QC logic and rooting for choosing files for downstream analysis.
+    allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
     """
     if wildcards.platform=="chip":
-        sm_qc_df_file = rules.extract_exp_mat.output.sm_qc_df # WON'T WORK
+        sm_qc_df_file = str(checkpoints.get_exp_mat_qc_df.get(**wildcards).output)
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
         sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
-        sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=config['min_gsm_gq']) & (sm_qc_df['N_GSM']<=config['max_gsm_gq'])]
-        sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=config['logav_min']) & (sm_qc_df['LOGAV']<=config['logav_max'])]
-        sm_qc_df = sm_qc_df[sm_qc_df['LIMAX']<=config['linmax_max']]
-        sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=config['logmax_max']]
+        sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
+        sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=logav_min) & (sm_qc_df['LOGAV']<=logav_max)]
+        sm_qc_df = sm_qc_df[sm_qc_df['LINMAX']<=linmax_max]
+        sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=logmax_max]
+        sm_qc_df = sm_qc_df[(sm_qc_df['HAS_NEGATIVE_VALUES']==False) | allow_negative_val]
+        sm_qc_df = sm_qc_df[sm_qc_df['N_GENES']>=min_genes]
         exp_mat_tags = sm_qc_df["TAG"].tolist()
-        exp_mat_files = \
-            expand("out/{organism}/chip/exp_mat/{tag}.tsv",
-                tag=exp_mat_tags,
-                organism=wildcards.organism)
+
     elif wildcards.platform=="seq":
-        gsm_gse_df_file = checkpoints.postquant_filter.get(**wildcards).output.gsm_gse_df
+        gsm_gse_df_file = str(checkpoints.postquant_filter.get(**wildcards).output.gsm_gse_df)
         gse_df = pd.read_csv(gsm_gse_df_file, sep="\t")
         gse_df =  gse_df.groupby('GSE')['GSE'].transform('count')
-        exp_mat_list = gse_df[gse_df["freq"]>=config['min_gsm_gq'] | gse_df['freq']<=config['max_gsm_gq']].tolist()
-        exp_mat_files = \
-            expand("out/{organism}/chip/gses/{tag}.tsv",
-            tag=exp_mat_list,
-            organism=wildcards.organism)
+        exp_mat_tags = gse_df[gse_df["freq"]>=min_gsm | gse_df['freq']<=max_gsm].tolist()
+    return exp_mat_tags
+#########################################PCA############################################################################
+rule pca:
+    '''
+    Takes exp_mat as an input and outputs first 
+    1) 10 (or less) PC components loadings scores
+    2) 
+    '''
+    input:
+        "out/{organism}/{platform}/exp_mat/{tag}.tsv"
+    output:
+        loadings="out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}/loadings.tsv",
+        stats="out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}/stats.tsv"
 
-    return exp_mat_files
+checkpoint get_pca_stats:
+    input:
+        lambda wildcards:
+            expand("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}/stats.tsv",
+                organism=wildcards.organism,
+                platform=wildcards.platform,
+                n_genes=wildcards.n_genes,
+                cor_type=wildcards.cor_type,
+                network=wildcards.network,
+                scale=wildcards.scale,
+                tag=get_filtered_exp_mat_files(wildcards, int(config["min_gsm_wgcna"]),
+                int(config["max_gsm_wgcna"]), int(wildcards.n_genes)))
+    output:
+        "out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}/stats.tsv"
+    run:
+        stats_df_list=[pd.read_csv(stats_file,sep='\t') for stats_file in input]
+        stats_df=pd.concat(stats_df_list)
+        stats_df.to_csv(str(output),sep='\t',index=False)
+        print("Done.")
 
+
+#########################################WGCNA##########################################################################
+# TODO: CHANGE GSES in seq to exp_mat so that it is assessable from downstream rules with similar path pattern
 rule wgcna:
     input:
-        get_exp_mat_for_wgcna
+        "out/{organism}/{platform}/exp_mat/{tag}.tsv"
     output:
-        modules="out/{organism}/{platform}/wgcna/{tag}/modules.tsv",
-        eigengenes="out/{organism}/{platform}/wgcna/{tag}/eigengenes.tsv",
-        stats="out/{organism}/{platform}/wgnca/{tag}/stats.txt"
-    params:
-        n_genes=config["wgcna_n_genes"],
-        cor_type=config["wgcna_cor"],
-        network_type=config["wgcna_nt"],
-        logscale_f=config["wgcna_logscale"]
-    log: "logs/{organism}/{platform}/wgcna/{tag}.log"
+        modules="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/modules.tsv",
+        eigengenes="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/eigengenes.tsv",
+        stats="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/stats.txt"
+    log: "logs/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}.log"
     message: "Performing WGCNA on {wildcards.tag} ({wildcards.organism}, {wildcards.platform})..."
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/wgcna.R {input} {output.modules} {output.eigengenes} {output.stats} "
-        " {params.n_genes} {params.cor_type} {params.network_type} {params.logscale_f}"
+        " {wildcards.n_genes} {wildcards.cor_type} {wildcards.network} {wildcards.scale}"
         " > {log} 2>&1"
 
 checkpoint get_wgcna_stats:
+    input:
+        lambda wildcards:
+            expand("out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/stats.txt",
+                organism=wildcards.organism,
+                platform=wildcards.platform,
+                n_genes=wildcards.n_genes,
+                cor_type=wildcards.cor_type,
+                network=wildcards.network,
+                scale=wildcards.scale,
+                tag=get_filtered_exp_mat_files(wildcards, int(config["min_gsm_wgcna"]),
+                int(config["max_gsm_wgcna"]), int(wildcards.n_genes)))
     output:
-        "out/{organism}/{platform}/wgcna_stats.tsv"
-    params:
-        "out/{organism}/{platform}/wgcna"
+        "out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}_stats.tsv"
     conda: "envs/r_scripts.yaml"
-    log: "logs/{organism}/{platform}/get_wgcna_stats.log"
-    message: "Getting WGCNA stats ({wildcards.organism}, {wildcards.platform})..."
-    shell:
-        "Rscript scripts/R/get_wgcna_stats.R {params} {output}"
-        " > {log} 2>&1"
-
+    log: "logs/{organism}/{platform}/get_wgcna_stats/{n_genes}_{cor_type}_{network}_{scale}.log"
+    message:
+        "Getting WGCNA stats. \n"
+        " Organism: {wildcards.organism} \n"
+        " Platform: {wildcards.platform} \n"
+        " Number of genes considered: {wildcards.n_genes} \n"
+        " Correlation metric: {wildcards.cor_type} \n"
+        " Network type: {wildcards.network} \n"
+        " Scale: {wildcards.scale} \n"
+    run:
+        qc_df_list=[pd.read_csv(qc_file,sep='\t') for qc_file in input]
+        qc_df=pd.concat(qc_df_list)
+        qc_df.to_csv(str(output),sep='\t',index=False)
+        print("Done.")
