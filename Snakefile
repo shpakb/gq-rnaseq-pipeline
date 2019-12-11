@@ -12,12 +12,20 @@ import re
 
 rule all:
     input:
-        expand("flags/{organism}/{platform}/pca/{n_genes}_{scale}/flag",
-                organism=['mm'],
-                platform=['chip'],
-                n_genes=config['pca_n_genes'],
-                scale=config['pca_scale'])
-
+        # expand("flags/{organism}/{platform}/pca/{n_genes}_{scale}/flag",
+        #         organism=['mm'],
+        #         platform=['chip'],
+        #         n_genes=config['pca_n_genes'],
+        #         scale=config['pca_scale'])
+        expand("out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv",
+            organism=['mm'],
+            platform=['chip'],
+            n_genes=config['pca_n_genes'],
+            scale=config['pca_scale'],
+            max_comp="10",
+            var_threshold="0.02",
+            geneset_name="HALLMARK_INTERFERON_ALPHA_RESPONSE"
+        )
 rule sm_download:
     '''
     Takes search output .txt, parses out all links and downloads them. (wget -nc) Existing up to date files out dir
@@ -55,7 +63,7 @@ checkpoint extract_sm_metadata:
         "python scripts/python/parse_sm_metadata.py {params.sm_download_dir} {output.gse_df} {output.gsm_df}"
         " > {log} 2>&1"
 
-########################################################################################################################
+#############################################RNASEQ#####################################################################
 rule sra_accession_df_download:
     resources:
         download_res=1,
@@ -262,7 +270,7 @@ rule push_gse:
     output: "out/{organism}/seq/push_gse_flag"
     shell: "touch {output}"
 
-################################################CHIP_ROOT###############################################################
+#############################################CHIP_ROOT##################################################################
 rule extract_exp_mat:
     '''
     Extracts expression matrices from files and writes QC report for downstream filtering.
@@ -318,7 +326,7 @@ checkpoint get_exp_mat_qc_df:
         qc_df.to_csv(str(output),sep='\t',index=False)
         print("Done.")
 
-###############################################INPUT_FUNCTION_QC########################################################
+#############################################INPUT_FUNCTION_QC##########################################################
 def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
                                logav_min=config["chip_logav_min"], logav_max=config["chip_logav_max"],
                                logmax_max=config["chip_logmax_max"], linmax_max=config["chip_linmax_max"],
@@ -345,13 +353,16 @@ def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=in
         gse_df =  gse_df.groupby('GSE')['GSE'].transform('count')
         exp_mat_tags = gse_df[gse_df["freq"]>=min_gsm | gse_df['freq']<=max_gsm].tolist()
     return exp_mat_tags
-#########################################PCA############################################################################
+
+#############################################PCA########################################################################
 rule pca:
     '''
     Takes exp_mat as an input and outputs first 
     1) 10 (or less) PC components loadings scores
     2) Stats- explained var, etc. 
     '''
+    resources:
+        time = 20
     input:
         "out/{organism}/{platform}/exp_mat/{tag}.tsv"
     output:
@@ -363,55 +374,67 @@ rule pca:
         " Number of genes considered: {wildcards.n_genes} \n"
         " Scale: {wildcards.scale}"
     log: "log/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.log"
+    conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/pca.R {input} {output} {wildcards.n_genes} {wildcards.scale}"
         " > {log} 2>&1"
 
-rule pca_push:
-    input: lambda wildcards:
-        expand("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds",
-            organism=wildcards.organism,
-            platform=wildcards.platform,
-            n_genes=wildcards.n_genes,
-            scale=wildcards.scale,
-            tag=get_filtered_exp_mat_files(wildcards, int(config["pca_min_gsm"]),
-            int(config["pca_max_gsm"]), int(wildcards.n_genes)))
-    output: "flags/{organism}/{platform}/pca/{n_genes}_{scale}/flag"
+rule get_pc_list:
+    '''
+    Aggregates pca components to single list of ranked lists. Filters components by QC.
+    QC params:
+    1) Explained valiance threshold. 2% for starters.
+    2) No more then 10pc per df.
+    If results look good conditions might be relaxed.
+    '''
+    input:
+        lambda wildcards:
+            expand("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds",
+                organism=wildcards.organism,
+                platform=wildcards.platform,
+                n_genes=wildcards.n_genes,
+                scale=wildcards.scale,
+                tag=get_filtered_exp_mat_files(wildcards, int(config["pca_min_gsm"]),
+                int(config["pca_max_gsm"]), int(wildcards.n_genes)))
+    message:
+        "Getting PC list {wildcards.organism} {wildcards.platform} \n"
+        " Number of genes considered: {wildcards.n_genes} \n"
+        " Scale of original dataset: {wildcards.scale} \n"
+        " Explained variance threshold %: {wildcards.var_threshold} \n"
+        " Max PC components for 1 dataset: {wildcards.max_comp}"
+    log: "logs/{organism}/{platform}/get_pc_list/{n_genes}_{scale}_{max_comp}_{var_threshold}.log"
+    output:
+        "out/{organism}/{platform}/pca/{n_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
+    conda: "envs/r_scripts.yaml"
     shell:
-        "touch {output}"
+        "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
+        " > {log} 2>&1"
 
-# rule get_genesets_object:
-#     '''
-#     Aggregates pca components to single list of ranked lists. Filters components by QC.
-#     QC params:
-#     1) Explained valiance threshold. 2% for starters.
-#     2) No more then 10pc per df.
-#     If results look good conditions might be relaxed.
-#     '''
-#     input:
-#         lambda wildcards:
-#             expand("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}/stats.tsv",
-#                 organism=wildcards.organism,
-#                 platform=wildcards.platform,
-#                 n_genes=wildcards.n_genes,
-#                 cor_type=wildcards.cor_type,
-#                 network=wildcards.network,
-#                 scale=wildcards.scale,
-#                 tag=get_filtered_exp_mat_files(wildcards, int(config["min_gsm_wgcna"]),
-#                 int(config["max_gsm_wgcna"]), int(wildcards.n_genes)))
-#     output:
-#         "out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}/stats.tsv"
+# TODO: remove first two lines in genesets inside the script. Artifact from GQ
+rule fgsea_genesets:
+    '''
+    Performs fgsea against list of PC components. Outputs ranked list of results with NES.
+    '''
+    input:
+        pc_list=rules.get_pc_list.output,
+        geneset="input/{organism}/genesets/{geneset_name}",
+    output:
+        "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv"
+    conda: "envs/fgsea.yaml"
+    shell:
+        "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output}"
 
-
-# rule fgsea_genesets:
-#     '''
-#     Performs fgsea against list of PC components. Outputs ranked list of results with NES.
-#     '''
-#
-# rule annotate_fgsea_results:
-#     '''
-#     Annotates fgsea results table with
-#     '''
+# TODO: create another rule that cuts most relevant hits and annotates them with gse titles. It is too much repetition
+#       to annotate everything
+rule prepare_pca_fgsea_result:
+    input:
+        gsea_results=rules.fgsea_genesets.output,
+        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
+    output:
+        "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}/prepared_{geneset_name}.tsv"
+    conda: "envs/r_scripts.yaml"
+    shell:
+        "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
 
 
 #########################################WGCNA##########################################################################

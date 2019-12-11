@@ -3,7 +3,6 @@ source("scripts/R/utils.R")
 
 args <- commandArgs(TRUE)
 
-print(args)
 exp_file <- args[1]
 pca_out_file <- args[2]
 n_genes <- as.integer(args[3])
