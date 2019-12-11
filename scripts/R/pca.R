@@ -1,5 +1,20 @@
 suppressMessages(library(tidyverse))
-source("scripts/R/utils.R")
+
+#for some stupid reason utils cant be imported on cluster. TODO: fix that!
+logDataset <- function(ge) {
+  if (is_logscale(ge))
+    return(ge)
+  return(log2(ge + 1))
+}
+
+is_logscale <- function(x) {
+  qx <- quantile(as.numeric(x), na.rm = T)
+  if (qx[5] - qx[1] > 100 || qx[5] > 100) {
+    return(FALSE)
+  } else {
+    return(TRUE)
+  }
+}
 
 args <- commandArgs(TRUE)
 
