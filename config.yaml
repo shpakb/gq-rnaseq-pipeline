@@ -53,7 +53,7 @@ min_genes: 6000
 
 #############################PCA_PARAMS#################################################################################
 # parameters shold be in string format so that they can be passed to folders names
-pca_min_gsm: 4
+pca_min_gsm: 2
 pca_max_gsm: 400
 pca_n_genes: "6000"
 pca_scale: "log"
