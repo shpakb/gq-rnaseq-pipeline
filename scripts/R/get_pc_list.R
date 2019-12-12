@@ -29,11 +29,11 @@ for (pca_file in pca_files) {
       as.data.frame(pca$rotation)[,1:n_comp] %>%
       as.list()
 
-    names(componets) <- paste0(tag, "_", names(componets))
-
     for (n in names(componets)){
       names(componets[[n]]) <- rownames(pca$rotation)
     }
+
+    names(componets) <- paste0(tag, "_", names(componets))
 
     result <- c(result, componets)
 
@@ -41,6 +41,7 @@ for (pca_file in pca_files) {
 
  }, error = function(e) {
     print("C'est la vie...")
+    print(pca_file)
     print(e$message)
   })
 }
