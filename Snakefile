@@ -383,7 +383,7 @@ def get_filtered_tags(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
     """
     if wildcards.platform=="chip":
-        sm_qc_df_file = str(f"out/{wildcards.organism}/chip/exp_qc_df.tsv")
+        sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_qc_df.tsv"
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
         sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
         sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
@@ -415,7 +415,7 @@ rule pca:
     input:
         "out/{organism}/{platform}/exp_mat/{tag}.tsv"
     output:
-        "out/{organism}/{platform}/pca/{max_genes}_{scale}/{tag}.rds",
+        protected("out/{organism}/{platform}/pca/{max_genes}_{scale}/{tag}.rds"),
     message:
         "Performing PCA on {wildcards.tag} \n"
         " Organism: {wildcards.organism} \n"
@@ -445,9 +445,9 @@ rule get_pc_list_adapter:
     output:
         "out/{organism}/{platform}/pca/{max_genes}_{scale}.list"
     run:
-        with open(output, 'w') as f:
+        with open(str(output), 'w') as f:
             for file in input:
-                f.write("%s\n" % file)
+                f.write("%s\n" % str(file))
 
 rule get_pc_list:
     '''
