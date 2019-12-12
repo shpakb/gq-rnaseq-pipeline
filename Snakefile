@@ -450,7 +450,6 @@ rule get_pc_list:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance % threshold: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-        " Input files: {input}"
     log: "logs/{organism}/{platform}/get_pc_list/{max_genes}_{scale}_{max_comp}_{var_threshold}.log"
     output:
         "out/{organism}/{platform}/pca/{max_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
