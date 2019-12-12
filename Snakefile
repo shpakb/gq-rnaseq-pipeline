@@ -472,7 +472,6 @@ rule prepare_pca_fgsea_result:
         "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
         "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
         "{geneset_name}.log"
-
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"

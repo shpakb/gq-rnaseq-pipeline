@@ -22,16 +22,18 @@ output_df <-
   data.frame(
     PC_NAME="blank",
     GSEA_STAT=0,
+    N_GENES=0,
     stringsAsFactors = FALSE
   )
 
 
 for (pc_name in names(pc_list)){
   pc <- pc_list[[pc_name]]
+  n_genes <- length(pc)
   gsea_stat <- fgsea::calcGseaStat(pc, na.omit(match(geneset, names(pc))))
   print(pc_name)
   print(gsea_stat)
-  output_df <- rbind(output_df, c(pc_name, gsea_stat))
+  output_df <- rbind(output_df, c(pc_name, gsea_stat, n_genes))
 }
 print(output_df)
 
