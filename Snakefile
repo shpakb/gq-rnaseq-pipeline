@@ -457,6 +457,8 @@ rule get_pc_list:
     2) No more then 10pc per df.
     If results look good conditions might be relaxed.
     '''
+    resources:
+        mem_ram=20
     input:
         rules.get_pc_list_adapter.output
     message:
