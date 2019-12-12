@@ -457,7 +457,7 @@ rule get_pc_list:
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
-        #" > {log} 2>&1"
+        " > {log} 2>&1"
 
 # TODO: remove first two lines in genesets inside the script. Artifact from GQ
 rule fgsea_genesets:
