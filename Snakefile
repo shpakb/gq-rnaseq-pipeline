@@ -479,7 +479,8 @@ rule fgsea_genesets:
     Performs fgsea against list of PC components. Outputs ranked list of results with NES.
     '''
     resources:
-        mem=8
+        mem_ram=8,
+        time=360
     input:
         pc_list=rules.get_pc_list.output,
         geneset="input/{organism}/genesets/{geneset_name}",
@@ -488,7 +489,7 @@ rule fgsea_genesets:
         "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
         "raw/{geneset_name}.tsv"
     message:
-        "Preparing results for PCA query. {wildcards.organism} {wildcards.platform} \n"
+        "Performing GSEA {wildcards.organism} {wildcards.platform} \n"
         " Geneset: {wildcards.geneset_name} \n"
         " Number of genes considered: {wildcards.max_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
