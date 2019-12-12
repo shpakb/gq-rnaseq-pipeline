@@ -17,32 +17,34 @@ rule all:
         #         platform=['chip'],
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
-        expand("out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv",
+        expand("out/{organism}/{platform}/pca_fgsea/"
+               "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+               "prepared/{geneset_name}.tsv",
             organism=['mm'],
             platform=['chip'],
             max_genes=config['pca_n_genes'],
             scale=config['pca_scale'],
             max_comp="10",
             var_threshold="0.02",
-            geneset_name=['HALLMARK_SPERMATOGENESIS', 'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
-                          'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_HYPOXIA', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING',
-                          'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
-                          'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
-                          'HALLMARK_MYC_TARGETS_V2', 'HALLMARK_TNFA_SIGNALING_VIA_NFKB', 'HALLMARK_KRAS_SIGNALING_DN',
-                          'HALLMARK_HEDGEHOG_SIGNALING', 'HALLMARK_APICAL_SURFACE', 'HALLMARK_MYC_TARGETS_V1',
-                          'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_CHOLESTEROL_HOMEOSTASIS',
-                          'HALLMARK_ANDROGEN_RESPONSE', 'HALLMARK_E2F_TARGETS', 'HALLMARK_GLYCOLYSIS',
-                          'HALLMARK_DNA_REPAIR', 'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION',
-                          'HALLMARK_IL6_JAK_STAT3_SIGNALING', 'HALLMARK_OXIDATIVE_PHOSPHORYLATION',
-                          'HALLMARK_UNFOLDED_PROTEIN_RESPONSE', 'HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY',
-                          'HALLMARK_INFLAMMATORY_RESPONSE', 'HALLMARK_UV_RESPONSE_UP',
-                          'HALLMARK_WNT_BETA_CATENIN_SIGNALING', 'HALLMARK_INTERFERON_ALPHA_RESPONSE',
-                          'HALLMARK_G2M_CHECKPOINT', 'HALLMARK_IL2_STAT5_SIGNALING', 'HALLMARK_APOPTOSIS',
-                          'HALLMARK_INTERFERON_GAMMA_RESPONSE', 'HALLMARK_ESTROGEN_RESPONSE_LATE',
-                          'HALLMARK_COAGULATION', 'HALLMARK_XENOBIOTIC_METABOLISM', 'HALLMARK_COMPLEMENT',
-                          'HALLMARK_ADIPOGENESIS', 'HALLMARK_TGF_BETA_SIGNALING', 'HALLMARK_MITOTIC_SPINDLE',
-                          'HALLMARK_MTORC1_SIGNALING', 'HALLMARK_APICAL_JUNCTION', 'HALLMARK_KRAS_SIGNALING_UP',
-                          'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM']
+            geneset_name=['HALLMARK_SPERMATOGENESIS', 'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM']
+                          # 'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_HYPOXIA', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING',
+                          # 'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
+                          # 'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
+                          # 'HALLMARK_MYC_TARGETS_V2', 'HALLMARK_TNFA_SIGNALING_VIA_NFKB', 'HALLMARK_KRAS_SIGNALING_DN',
+                          # 'HALLMARK_HEDGEHOG_SIGNALING', 'HALLMARK_APICAL_SURFACE', 'HALLMARK_MYC_TARGETS_V1',
+                          # 'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_CHOLESTEROL_HOMEOSTASIS',
+                          # 'HALLMARK_ANDROGEN_RESPONSE', 'HALLMARK_E2F_TARGETS', 'HALLMARK_GLYCOLYSIS',
+                          # 'HALLMARK_DNA_REPAIR', 'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION',
+                          # 'HALLMARK_IL6_JAK_STAT3_SIGNALING', 'HALLMARK_OXIDATIVE_PHOSPHORYLATION',
+                          # 'HALLMARK_UNFOLDED_PROTEIN_RESPONSE', 'HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY',
+                          # 'HALLMARK_INFLAMMATORY_RESPONSE', 'HALLMARK_UV_RESPONSE_UP',
+                          # 'HALLMARK_WNT_BETA_CATENIN_SIGNALING', 'HALLMARK_INTERFERON_ALPHA_RESPONSE',
+                          # 'HALLMARK_G2M_CHECKPOINT', 'HALLMARK_IL2_STAT5_SIGNALING', 'HALLMARK_APOPTOSIS',
+                          # 'HALLMARK_INTERFERON_GAMMA_RESPONSE', 'HALLMARK_ESTROGEN_RESPONSE_LATE',
+                          # 'HALLMARK_COAGULATION', 'HALLMARK_XENOBIOTIC_METABOLISM', 'HALLMARK_COMPLEMENT',
+                          # 'HALLMARK_ADIPOGENESIS', 'HALLMARK_TGF_BETA_SIGNALING', 'HALLMARK_MITOTIC_SPINDLE',
+                          # 'HALLMARK_MTORC1_SIGNALING', 'HALLMARK_APICAL_JUNCTION', 'HALLMARK_KRAS_SIGNALING_UP',
+                          # 'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM']
         )
 rule sm_download:
     '''
@@ -437,7 +439,9 @@ rule fgsea_genesets:
         pc_list=rules.get_pc_list.output,
         geneset="input/{organism}/genesets/{geneset_name}",
     output:
-        "out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv"
+        "out/{organism}/{platform}/pca_fgsea/"
+        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "raw/{geneset_name}.tsv"
     message:
         "Preparing results for PCA query. {wildcards.organism} {wildcards.platform} \n"
         " Geneset: {wildcards.geneset_name} \n"
@@ -460,7 +464,8 @@ rule prepare_pca_fgsea_result:
         gsea_results=rules.fgsea_genesets.output,
         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
     output:
-        "out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/prepared_{geneset_name}.tsv"
+        "out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "prepared/{geneset_name}.tsv"
     message:
         "Preparing results for PCA query. {wildcards.organism} {wildcards.platform} \n"
         " Geneset: {wildcards.geneset_name} \n"

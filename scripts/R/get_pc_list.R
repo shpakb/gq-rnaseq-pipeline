@@ -16,27 +16,32 @@ cat(sprintf("Number of PCA to concatinate: %s \n", length(pca_files)))
 result <- list()
 
 for (pca_file in pca_files) {
-  print(pca_file)
-  pca <- readRDS(pca_file)
-  tag <- pca_file %>% str_extract("GSE\\d+-GPL\\d+|GSE\\d+")
+  tryCatch({
+    pca <- readRDS(pca_file)
+    tag <- pca_file %>% str_extract("GSE\\d+-GPL\\d+|GSE\\d+")
 
-  # % of explained variance vector for all PC
-  pev <- (pca$sdev)^2 / sum(pca$sdev^2) * 100
+    # % of explained variance vector for all PC
+    pev <- (pca$sdev)^2 / sum(pca$sdev^2) * 100
 
-  # chose how many first PC take from pca.
-  n_comp <- min(max_comp, ncol(pca$x), sum(pev > explained_var_threshold))
+    # chose how many first PC take from pca.
+    n_comp <- min(max_comp, ncol(pca$x), sum(pev > explained_var_threshold))
 
-  componets <-
-    as.data.frame(pca$rotation)[,1:n_comp] %>%
-    as.list()
+    componets <-
+      as.data.frame(pca$rotation)[,1:n_comp] %>%
+      as.list()
 
-  names(componets) <- paste0(tag, "_", names(componets))
+    names(componets) <- paste0(tag, "_", names(componets))
 
-  for (n in names(componets)){
-    names(componets[[n]]) <- rownames(pca$rotation)
-  }
+    for (n in names(componets)){
+      names(componets[[n]]) <- rownames(pca$rotation)
+    }
 
-  result <- c(result, componets)
+    result <- c(result, componets)
+ }, error = function(e) {
+    print("C'est la vie...")
+    print(e$message)
+  })
 }
 
 saveRDS(result, pc_list_out_file)
+print("Done.")
