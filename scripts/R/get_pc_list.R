@@ -12,7 +12,6 @@ cat(sprintf("Max number of componets: %s \n", max_comp))
 cat(sprintf("Minimum explained veriance threshold: %s persent \n", explained_var_threshold))
 cat(sprintf("Number of PCA to concatinate: %s \n", length(pca_files)))
 
-
 result <- list()
 
 for (pca_file in pca_files) {

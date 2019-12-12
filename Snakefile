@@ -20,7 +20,7 @@ rule all:
         expand("out/{organism}/{platform}/pca_fgsea/"
                "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
                "prepared/{geneset_name}.tsv",
-            organism=['mm'],
+            organism=['rn'],
             platform=['chip'],
             max_genes=config['pca_n_genes'],
             scale=config['pca_scale'],
@@ -383,7 +383,7 @@ def get_filtered_exp_mat_files_passive(wildcards, min_gsm=int, max_gsm=int, min_
     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
     """
     if wildcards.platform=="chip":
-        sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_qc_df.tsv"
+        sm_qc_df_file = str(f"out/{wildcards.organism}/chip/exp_qc_df.tsv")
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
         sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
         sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
@@ -395,7 +395,7 @@ def get_filtered_exp_mat_files_passive(wildcards, min_gsm=int, max_gsm=int, min_
         exp_mat_tags = sm_qc_df["TAG"].tolist()
 
     elif wildcards.platform=="seq":
-        gsm_gse_df_file = f"out/{wildcards.organism}/seq/postquant_filter/gsm_gse.tsv"
+        gsm_gse_df_file = str(f"out/{wildcards.organism}/seq/postquant_filter/gsm_gse.tsv")
         gse_df = pd.read_csv(gsm_gse_df_file, sep="\t")
         gse_df =  gse_df.groupby('GSE')['GSE'].transform('count')
         exp_mat_tags = gse_df[gse_df["freq"]>=min_gsm | gse_df['freq']<=max_gsm].tolist()
