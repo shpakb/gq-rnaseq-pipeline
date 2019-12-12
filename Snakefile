@@ -20,7 +20,7 @@ rule all:
         expand("out/{organism}/{platform}/pca_fgsea/"
                "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
                "prepared/{geneset_name}.tsv",
-            organism=['mm'],
+            organism=['rn'],
             platform=['chip'],
             max_genes=config['pca_n_genes'],
             scale=config['pca_scale'],
@@ -348,9 +348,9 @@ checkpoint get_exp_mat_qc_df:
 
 #############################################INPUT_FUNCTION_QC##########################################################
 def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
-                               logav_min=config["chip_logav_min"], logav_max=config["chip_logav_max"],
-                               logmax_max=config["chip_logmax_max"], linmax_max=config["chip_linmax_max"],
-                               allow_negative_val=False):
+                                       logav_min=config["chip_logav_min"], logav_max=config["chip_logav_max"],
+                                       logmax_max=config["chip_logmax_max"], linmax_max=config["chip_linmax_max"],
+                                       allow_negative_val=False):
     """
     QC logic and rooting for choosing files for downstream analysis.
     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
@@ -374,6 +374,34 @@ def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=in
         exp_mat_tags = gse_df[gse_df["freq"]>=min_gsm | gse_df['freq']<=max_gsm].tolist()
     return exp_mat_tags
 
+def get_filtered_exp_mat_files_passive(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
+                               logav_min=config["chip_logav_min"], logav_max=config["chip_logav_max"],
+                               logmax_max=config["chip_logmax_max"], linmax_max=config["chip_linmax_max"],
+                               allow_negative_val=False):
+    """
+    QC logic and rooting for choosing files for downstream analysis.
+    allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
+    """
+    if wildcards.platform=="chip":
+        sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_qc_df.tsv"
+        sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
+        sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
+        sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
+        sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=logav_min) & (sm_qc_df['LOGAV']<=logav_max)]
+        sm_qc_df = sm_qc_df[sm_qc_df['LINMAX']<=linmax_max]
+        sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=logmax_max]
+        sm_qc_df = sm_qc_df[(sm_qc_df['HAS_NEGATIVE_VALUES']==False) | allow_negative_val]
+        sm_qc_df = sm_qc_df[sm_qc_df['N_GENES']>=min_genes]
+        exp_mat_tags = sm_qc_df["TAG"].tolist()
+
+    elif wildcards.platform=="seq":
+        gsm_gse_df_file = f"out/{wildcards.organism}/seq/postquant_filter/gsm_gse.tsv"
+        gse_df = pd.read_csv(gsm_gse_df_file, sep="\t")
+        gse_df =  gse_df.groupby('GSE')['GSE'].transform('count')
+        exp_mat_tags = gse_df[gse_df["freq"]>=min_gsm | gse_df['freq']<=max_gsm].tolist()
+    return exp_mat_tags
+
+
 #############################################PCA########################################################################
 rule pca:
     '''
@@ -393,7 +421,7 @@ rule pca:
         " Platform: {wildcards.platform} \n"
         " Number of genes considered: {wildcards.n_genes} \n"
         " Scale: {wildcards.scale}"
-    log: "log/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.log"
+    log: "logs/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.log"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/pca.R {input} {output} {wildcards.n_genes} {wildcards.scale}"
@@ -409,26 +437,27 @@ rule get_pc_list:
     '''
     input:
         lambda wildcards:
-            expand("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds",
+            expand(rules.pca.output,
                 organism=wildcards.organism,
                 platform=wildcards.platform,
                 n_genes=wildcards.max_genes,
                 scale=wildcards.scale,
-                tag=get_filtered_exp_mat_files(wildcards, int(config["pca_min_gsm"]),
+                tag=get_filtered_exp_mat_files_passive(wildcards, int(config["pca_min_gsm"]),
                 int(config["pca_max_gsm"]), int(wildcards.max_genes)))
     message:
         "Getting PC list {wildcards.organism} {wildcards.platform} \n"
         " Number of genes considered: {wildcards.max_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
-        " Explained variance threshold %: {wildcards.var_threshold} \n"
-        " Max PC components for 1 dataset: {wildcards.max_comp}"
+        " Explained variance % threshold: {wildcards.var_threshold} \n"
+        " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+        " Input files: {input}"
     log: "logs/{organism}/{platform}/get_pc_list/{max_genes}_{scale}_{max_comp}_{var_threshold}.log"
     output:
         "out/{organism}/{platform}/pca/{max_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
-        " > {log} 2>&1"
+        #" > {log} 2>&1"
 
 # TODO: remove first two lines in genesets inside the script. Artifact from GQ
 rule fgsea_genesets:
