@@ -5,7 +5,7 @@ args <- commandArgs(TRUE)
 pc_list_out_file <- args[1]
 max_comp <- args[2]
 explained_var_threshold <- args[3]
-pca_files <- args[4:length(args)]
+pca_files <- args[4] %>% readLines()
 
 cat(sprintf("Output file: %s \n", pc_list_out_file))
 cat(sprintf("Max number of componets: %s \n", max_comp))
@@ -36,6 +36,9 @@ for (pca_file in pca_files) {
     }
 
     result <- c(result, componets)
+
+    print(pca_file)
+
  }, error = function(e) {
     print("C'est la vie...")
     print(e$message)

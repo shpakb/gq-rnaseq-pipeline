@@ -400,7 +400,7 @@ def get_filtered_tags(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
         gse_df =  gse_df.groupby('GSE')['GSE'].transform('count')
         exp_mat_tags = gse_df[gse_df["freq"]>=min_gsm | gse_df['freq']<=max_gsm].tolist()
 
-    return exp_mat_tags[:len(exp_mat_tags)//40]
+    return exp_mat_tags#[:len(exp_mat_tags)//40]
 
 
 #############################################PCA########################################################################
@@ -415,18 +415,39 @@ rule pca:
     input:
         "out/{organism}/{platform}/exp_mat/{tag}.tsv"
     output:
-        "out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds",
+        "out/{organism}/{platform}/pca/{max_genes}_{scale}/{tag}.rds",
     message:
         "Performing PCA on {wildcards.tag} \n"
         " Organism: {wildcards.organism} \n"
         " Platform: {wildcards.platform} \n"
-        " Number of genes considered: {wildcards.n_genes} \n"
+        " Number of genes considered: {wildcards.max_genes} \n"
         " Scale: {wildcards.scale}"
-    log: "logs/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.log"
+    log: "logs/{organism}/{platform}/pca/{max_genes}_{scale}/{tag}.log"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/pca.R {input} {output} {wildcards.n_genes} {wildcards.scale}"
+        "Rscript scripts/R/pca.R {input} {output} {wildcards.max_genes} {wildcards.scale}"
         " > {log} 2>&1"
+
+rule get_pc_list_adapter:
+    '''
+    Apparently it is impossible to pass 4k arguments with bash. This is workaround with concatenation of arguments to a 
+    single list. Note: it is not a problem with large number of inputs if they passed to 'run' section.
+    '''
+    input:
+        lambda wildcards:
+            expand(rules.pca.output,
+                organism=wildcards.organism,
+                platform=wildcards.platform,
+                max_genes=wildcards.max_genes,
+                scale=wildcards.scale,
+                tag=get_filtered_tags(wildcards, int(config["pca_min_gsm"]),
+                int(config["pca_max_gsm"]), int(wildcards.max_genes)))
+    output:
+        "out/{organism}/{platform}/pca/{max_genes}_{scale}.list"
+    run:
+        with open(output, 'w') as f:
+            for file in input:
+                f.write("%s\n" % file)
 
 rule get_pc_list:
     '''
@@ -437,14 +458,7 @@ rule get_pc_list:
     If results look good conditions might be relaxed.
     '''
     input:
-        lambda wildcards:
-            expand(rules.pca.output,
-                organism=wildcards.organism,
-                platform=wildcards.platform,
-                n_genes=wildcards.max_genes,
-                scale=wildcards.scale,
-                tag=get_filtered_tags(wildcards, int(config["pca_min_gsm"]),
-                int(config["pca_max_gsm"]), int(wildcards.max_genes)))
+        rules.get_pc_list_adapter.output
     message:
         "Getting PC list {wildcards.organism} {wildcards.platform} \n"
         " Number of genes considered: {wildcards.max_genes} \n"
