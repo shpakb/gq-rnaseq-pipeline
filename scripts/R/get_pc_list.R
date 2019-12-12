@@ -20,28 +20,28 @@ for (pca_file in pca_files) {
     tag <- pca_file %>% str_extract("GSE\\d+-GPL\\d+|GSE\\d+")
 
     # % of explained variance vector for all PC
-    pev <- (pca$sdev)^2 / sum(pca$sdev^2) * 100
-
+    # pev <- (pca$sdev)^2 / sum(pca$sdev^2) * 100
     # chose how many first PC take from pca.
-    n_comp <- min(max_comp, ncol(pca$x), sum(pev > explained_var_threshold))
+    # n_comp <- min(max_comp, ncol(pca$rotation), sum(pev > explained_var_threshold))
+    # componets <-
+    #   as.data.frame(pca$rotation)[,1:n_comp] %>%
+    #   as.list()
 
     componets <-
-      as.data.frame(pca$rotation)[,1:n_comp] %>%
+      as.data.frame(pca$rotation) %>%
       as.list()
+
+    names(componets) <- paste0(tag, "_", names(componets))
 
     for (n in names(componets)){
       names(componets[[n]]) <- rownames(pca$rotation)
     }
 
-    names(componets) <- paste0(tag, "_", names(componets))
-
     result <- c(result, componets)
-
-    print(pca_file)
 
  }, error = function(e) {
     print("C'est la vie...")
-    print(pca_file)
+    print(pca_files)
     print(e$message)
   })
 }
