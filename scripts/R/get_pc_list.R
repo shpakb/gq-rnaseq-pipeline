@@ -16,7 +16,7 @@ cat(sprintf("Number of PCA to concatinate: %s \n", length(pca_files)))
 result <- list()
 
 for (pca_file in pca_files) {
-
+  print(pca_file)
   pca <- readRDS(pca_file)
   tag <- pca_file %>% str_extract("GSE\\d+-GPL\\d+|GSE\\d+")
 
