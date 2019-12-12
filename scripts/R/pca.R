@@ -42,7 +42,7 @@ filtered_genes_indexes <- which(apply(t(exp), 2, var)!=0)
 exp <- exp[filtered_genes_indexes,]
 
 # take to n_genes by max2 expression.
-n_genes <- min(nrow(x), n_genes)
+n_genes <- min(nrow(exp), n_genes)
 exp <- exp[1:n_genes, ]
 
 pca <- prcomp(t(exp), scale=T, center=T)

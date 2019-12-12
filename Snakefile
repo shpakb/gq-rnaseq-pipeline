@@ -18,7 +18,7 @@ rule all:
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
         expand("out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv",
-            organism=['mm'],
+            organism=['rn'],
             platform=['chip'],
             max_genes=config['pca_n_genes'],
             scale=config['pca_scale'],
@@ -452,6 +452,8 @@ rule fgsea_genesets:
     conda: "envs/fgsea.yaml"
     shell:
         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output}"
+        " > {log} 2>&1"
+
 
 rule prepare_pca_fgsea_result:
     input:
@@ -474,6 +476,7 @@ rule prepare_pca_fgsea_result:
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
+        " > {log} 2>&1"
 
 
 #########################################WGCNA##########################################################################
