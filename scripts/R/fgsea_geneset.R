@@ -14,6 +14,7 @@ cat(sprintf("Output file: %s \n", output_file))
 pc_list <- readRDS(pc_list_file)
 geneset <- readLines(geneset_file)
 
+cat(sprintf("Number of PC: %i \n", length(pc_list)))
 
 # removing artifact lines from GQ
 geneset <- geneset[3:length(geneset)]
@@ -26,17 +27,19 @@ output_df <-
     stringsAsFactors = FALSE
   )
 
-
 for (pc_name in names(pc_list)){
-  pc <- pc_list[[pc_name]]
-  n_genes <- length(pc)
-  gsea_stat <- fgsea::calcGseaStat(pc, na.omit(match(geneset, names(pc))))
-  print(pc_name)
-  print(gsea_stat)
-  output_df <- rbind(output_df, c(pc_name, gsea_stat, n_genes))
+  tryCatch({
+    print(pc_name)
+    pc <- pc_list[[pc_name]]
+    n_genes <- length(pc)
+    gsea_stat <- fgsea::calcGseaStat(pc, na.omit(match(geneset, names(pc))))
+    output_df <- rbind(output_df, c(pc_name, gsea_stat, n_genes))
+ }, error = function(e) {
+    print("woops!")
+    print(e$message)
+  })
 }
-print(output_df)
 
-
+print("Writing results")
 
 write.table(output_df, output_file, col.names = T, row.names = F, sep = "\t", quote=F)
