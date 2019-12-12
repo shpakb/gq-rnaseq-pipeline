@@ -374,7 +374,7 @@ def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=in
         exp_mat_tags = gse_df[gse_df["freq"]>=min_gsm | gse_df['freq']<=max_gsm].tolist()
     return exp_mat_tags
 
-def get_filtered_exp_mat_files_passive(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
+def get_filtered_tags(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
                                logav_min=config["chip_logav_min"], logav_max=config["chip_logav_max"],
                                logmax_max=config["chip_logmax_max"], linmax_max=config["chip_linmax_max"],
                                allow_negative_val=False):
@@ -399,7 +399,8 @@ def get_filtered_exp_mat_files_passive(wildcards, min_gsm=int, max_gsm=int, min_
         gse_df = pd.read_csv(gsm_gse_df_file, sep="\t")
         gse_df =  gse_df.groupby('GSE')['GSE'].transform('count')
         exp_mat_tags = gse_df[gse_df["freq"]>=min_gsm | gse_df['freq']<=max_gsm].tolist()
-    return exp_mat_tags
+
+    return exp_mat_tags[:len(exp_mat_tags)//40]
 
 
 #############################################PCA########################################################################
@@ -442,7 +443,7 @@ rule get_pc_list:
                 platform=wildcards.platform,
                 n_genes=wildcards.max_genes,
                 scale=wildcards.scale,
-                tag=get_filtered_exp_mat_files_passive(wildcards, int(config["pca_min_gsm"]),
+                tag=get_filtered_tags(wildcards, int(config["pca_min_gsm"]),
                 int(config["pca_max_gsm"]), int(wildcards.max_genes)))
     message:
         "Getting PC list {wildcards.organism} {wildcards.platform} \n"
