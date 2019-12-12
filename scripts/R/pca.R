@@ -1,7 +1,4 @@
 suppressMessages(library(tidyverse))
-# TODO: check and eplain how scaling influences order of componets in PCA
-
-#for some stupid reason utils cant be imported on cluster. TODO: fix that!
 logDataset <- function(ge) {
   if (is_logscale(ge))
     return(ge)
@@ -40,8 +37,14 @@ if(logscale_f) {
   exp <- logDataset(exp)
 }
 
+# remove genes with 0 variance
+filtered_genes_indexes <- which(apply(t(exp), 2, var)!=0)
+exp <- exp[filtered_genes_indexes,]
+
+# take to n_genes by max2 expression.
+n_genes <- min(nrow(x), n_genes)
 exp <- exp[1:n_genes, ]
 
-pca <- prcomp(t(exp), scale=F, center=T)
+pca <- prcomp(t(exp), scale=T, center=T)
 
 saveRDS(pca, file = pca_out_file)

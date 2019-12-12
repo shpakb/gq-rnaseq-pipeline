@@ -17,10 +17,10 @@ rule all:
         #         platform=['chip'],
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
-        expand("out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv",
+        expand("out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv",
             organism=['mm'],
             platform=['chip'],
-            n_genes=config['pca_n_genes'],
+            max_genes=config['pca_n_genes'],
             scale=config['pca_scale'],
             max_comp="10",
             var_threshold="0.02",
@@ -410,19 +410,19 @@ rule get_pc_list:
             expand("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds",
                 organism=wildcards.organism,
                 platform=wildcards.platform,
-                n_genes=wildcards.n_genes,
+                n_genes=wildcards.max_genes,
                 scale=wildcards.scale,
                 tag=get_filtered_exp_mat_files(wildcards, int(config["pca_min_gsm"]),
-                int(config["pca_max_gsm"]), int(wildcards.n_genes)))
+                int(config["pca_max_gsm"]), int(wildcards.max_genes)))
     message:
         "Getting PC list {wildcards.organism} {wildcards.platform} \n"
-        " Number of genes considered: {wildcards.n_genes} \n"
+        " Number of genes considered: {wildcards.max_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp}"
-    log: "logs/{organism}/{platform}/get_pc_list/{n_genes}_{scale}_{max_comp}_{var_threshold}.log"
+    log: "logs/{organism}/{platform}/get_pc_list/{max_genes}_{scale}_{max_comp}_{var_threshold}.log"
     output:
-        "out/{organism}/{platform}/pca/{n_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
+        "out/{organism}/{platform}/pca/{max_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
@@ -437,19 +437,40 @@ rule fgsea_genesets:
         pc_list=rules.get_pc_list.output,
         geneset="input/{organism}/genesets/{geneset_name}",
     output:
-        "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv"
+        "out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/{geneset_name}.tsv"
+    message:
+        "Preparing results for PCA query. {wildcards.organism} {wildcards.platform} \n"
+        " Geneset: {wildcards.geneset_name} \n"
+        " Number of genes considered: {wildcards.max_genes} \n"
+        " Scale of original dataset: {wildcards.scale} \n"
+        " Explained variance threshold %: {wildcards.var_threshold} \n"
+        " Max PC components for 1 dataset: {wildcards.max_comp}"
+    log:
+        "logs/{organism}/{platform}/fgsea_genesets/"
+        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{geneset_name}.log"
     conda: "envs/fgsea.yaml"
     shell:
         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output}"
 
-# TODO: create another rule that cuts most relevant hits and annotates them with gse titles. It is too much repetition
-#       to annotate everything
 rule prepare_pca_fgsea_result:
     input:
         gsea_results=rules.fgsea_genesets.output,
         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
     output:
-        "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}/prepared_{geneset_name}.tsv"
+        "out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/prepared_{geneset_name}.tsv"
+    message:
+        "Preparing results for PCA query. {wildcards.organism} {wildcards.platform} \n"
+        " Geneset: {wildcards.geneset_name} \n"
+        " Number of genes considered: {wildcards.max_genes} \n"
+        " Scale of original dataset: {wildcards.scale} \n"
+        " Explained variance threshold %: {wildcards.var_threshold} \n"
+        " Max PC components for 1 dataset: {wildcards.max_comp}"
+    log:
+        "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
+        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{geneset_name}.log"
+
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
