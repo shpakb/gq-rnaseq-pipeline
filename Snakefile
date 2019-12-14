@@ -440,7 +440,7 @@ rule get_pc_list_adapter:
                 platform=wildcards.platform,
                 max_genes=wildcards.max_genes,
                 scale=wildcards.scale,
-                tag=get_filtered_tags(wildcards, int(config["pca_min_gsm"]),
+                tag=get_filtered_exp_mat_files(wildcards, int(config["pca_min_gsm"]),
                 int(config["pca_max_gsm"]), int(wildcards.max_genes)))
     output:
         "out/{organism}/{platform}/pca/{max_genes}_{scale}.list"

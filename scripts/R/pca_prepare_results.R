@@ -11,10 +11,10 @@ cat(sprintf("GSE df file: %s \n", gse_df_file))
 cat(sprintf("Annotated output file: %s \n", annotated_output_file))
 
 gsea_results_df <- read.csv(gsea_results_df_file, sep='\t', stringsAsFactors=F)
-gsea_results_df <- gsea_results_df[2:nrow(gsea_results_df),]
-gsea_results_df <- gsea_results_df[order(abs(gsea_results_df$GSEA_STAT), decreasing = T),]
+gsea_results_df <- gsea_results_df[order(abs(gsea_results_df$PADJ), decreasing = T),]
 # get first 1000 results by score
-gsea_results_df <- gsea_results_df[1:min(nrow(gsea_results_df), 1000),]
+cuttof <- min(nrow(gsea_results_df), 1000)
+gsea_results_df <- gsea_results_df[1:cuttof,]
 
 # annotate
 gse_df <-
@@ -24,7 +24,7 @@ gse_df <-
 gse_df$GSE <- gse_df$GSE %>% str_extract("GSE\\d+")
 gse_df <- gse_df %>% distinct()
 
-gsea_results_df$GSE <-gsea_results_df$PC_NAME %>% str_extract("GSE\\d+")
+gsea_results_df$GSE <- gsea_results_df$PC_NAME %>% str_extract("GSE\\d+")
 
 gsea_results_df <- merge(gsea_results_df, gse_df, all.x=T)
 
