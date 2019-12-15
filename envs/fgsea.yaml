@@ -4,3 +4,5 @@ channels:
 dependencies:
   - r-tidyverse
   - bioconductor-fgsea
+  - r-foreach
+  - r-doParallel

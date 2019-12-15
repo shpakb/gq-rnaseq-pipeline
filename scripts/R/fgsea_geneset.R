@@ -1,6 +1,9 @@
 suppressMessages(library(tidyverse))
 suppressMessages(library(fgsea))
 suppressMessages(library(data.table))
+suppressMessages(library(foreach))
+suppressMessages(library(doParallel))
+
 
 args <- commandArgs(TRUE)
 
@@ -20,7 +23,6 @@ cat(sprintf("Number of PC: %i \n", length(pc_list)))
 # removing artifact lines from GQ
 geneset <- geneset[3:length(geneset)] %>% data.table()
 
-
 output_df <-
   data.frame(
     PC_NAME="blank",
@@ -30,21 +32,24 @@ output_df <-
     stringsAsFactors = FALSE
   )
 
-for (pc_name in names(pc_list)){
-  tryCatch({
-    pc <- pc_list[[pc_name]]
-    n_genes <- length(pc)
-    fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
-    fgsea_out <- fgsea_out %>% select(padj, NES, size) %>% unlist
-    output_df <- rbind(output_df, c(pc_name, fgsea_out))
- }, error = function(e) {
-    print("woops!")
-    print(pc_name)
-    print(e$message)
-  })
+cores <- detectCores()
+cl <- makeCluster(cores[1])
+registerDoParallel(cl)
+
+cat(sprintf("Number of cores: %i \n", cores[1]))
+
+output_df <- foreach(pc_name=names(pc_list),.combine=rbind) %do% {
+      pc <- pc_list[[pc_name]]
+      n_genes <- length(pc)
+      fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
+      fgsea_out <- fgsea_out %>% select(padj, NES, size) %>% unlist %>% unname
+      fgsea_out <- c(pc_name, fgsea_out)
+      fgsea_out
 }
 
-output_df <- output_df[2:nrow(output_df),]
+stopCluster(cl)
+
+colnames(output_df) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
 
 print("Writing results")
 

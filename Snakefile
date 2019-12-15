@@ -26,7 +26,7 @@ rule all:
             scale=config['pca_scale'],
             max_comp="10",
             var_threshold="0.02",
-            geneset_name=['HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_HYPOXIA', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING']
+            geneset_name=['HALLMARK_HYPOXIA']# 'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING']
                           #'HALLMARK_SPERMATOGENESIS', 'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
                           # 'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
                           # 'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
@@ -482,7 +482,8 @@ rule fgsea_genesets:
     '''
     resources:
         mem_ram=20,
-        time=360
+        time=360,
+        cores=8
     input:
         pc_list=rules.get_pc_list.output,
         geneset="input/{organism}/genesets/{geneset_name}",
