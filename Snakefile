@@ -12,40 +12,41 @@ import re
 
 rule all:
     input:
+        "out/rn/seq/gse_checkout_flag"
         # expand("flags/{organism}/{platform}/pca/{n_genes}_{scale}/flag",
         #         organism=['mm'],
         #         platform=['chip'],
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
-        expand("out/{organism}/{platform}/pca_fgsea/"
-               "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
-               "prepared/{geneset_name}.tsv",
-            organism=['mm'],
-            platform=['chip'],
-            max_genes=config['pca_n_genes'],
-            scale=config['pca_scale'],
-            max_comp="10",
-            var_threshold="0.02",
-            geneset_name=['HALLMARK_HYPOXIA']# 'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING']
-                          #'HALLMARK_SPERMATOGENESIS', 'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
-                          # 'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
-                          # 'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
-                          # 'HALLMARK_MYC_TARGETS_V2', 'HALLMARK_TNFA_SIGNALING_VIA_NFKB', 'HALLMARK_KRAS_SIGNALING_DN',
-                          # 'HALLMARK_HEDGEHOG_SIGNALING', 'HALLMARK_APICAL_SURFACE', 'HALLMARK_MYC_TARGETS_V1',
-                          # 'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_CHOLESTEROL_HOMEOSTASIS',
-                          # 'HALLMARK_ANDROGEN_RESPONSE', 'HALLMARK_E2F_TARGETS', 'HALLMARK_GLYCOLYSIS',
-                          # 'HALLMARK_DNA_REPAIR', 'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION',
-                          # 'HALLMARK_IL6_JAK_STAT3_SIGNALING', 'HALLMARK_OXIDATIVE_PHOSPHORYLATION',
-                          # 'HALLMARK_UNFOLDED_PROTEIN_RESPONSE', 'HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY',
-                          # 'HALLMARK_INFLAMMATORY_RESPONSE', 'HALLMARK_UV_RESPONSE_UP',
-                          # 'HALLMARK_WNT_BETA_CATENIN_SIGNALING', 'HALLMARK_INTERFERON_ALPHA_RESPONSE',
-                          # 'HALLMARK_G2M_CHECKPOINT', 'HALLMARK_IL2_STAT5_SIGNALING', 'HALLMARK_APOPTOSIS',
-                          # 'HALLMARK_INTERFERON_GAMMA_RESPONSE', 'HALLMARK_ESTROGEN_RESPONSE_LATE',
-                          # 'HALLMARK_COAGULATION', 'HALLMARK_XENOBIOTIC_METABOLISM', 'HALLMARK_COMPLEMENT',
-                          # 'HALLMARK_ADIPOGENESIS', 'HALLMARK_TGF_BETA_SIGNALING', 'HALLMARK_MITOTIC_SPINDLE',
-                          # 'HALLMARK_MTORC1_SIGNALING', 'HALLMARK_APICAL_JUNCTION', 'HALLMARK_KRAS_SIGNALING_UP',
-                          # 'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM']
-        )
+        # expand("out/{organism}/{platform}/pca_fgsea/"
+        #        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        #        "prepared/{geneset_name}.tsv",
+        #     organism=['mm'],
+        #     platform=['chip'],
+        #     max_genes=config['pca_n_genes'],
+        #     scale=config['pca_scale'],
+        #     max_comp="10",
+        #     var_threshold="0.02",
+        #     geneset_name=['HALLMARK_HYPOXIA']# 'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING']
+        #                   #'HALLMARK_SPERMATOGENESIS', 'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
+        #                   # 'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
+        #                   # 'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
+        #                   # 'HALLMARK_MYC_TARGETS_V2', 'HALLMARK_TNFA_SIGNALING_VIA_NFKB', 'HALLMARK_KRAS_SIGNALING_DN',
+        #                   # 'HALLMARK_HEDGEHOG_SIGNALING', 'HALLMARK_APICAL_SURFACE', 'HALLMARK_MYC_TARGETS_V1',
+        #                   # 'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_CHOLESTEROL_HOMEOSTASIS',
+        #                   # 'HALLMARK_ANDROGEN_RESPONSE', 'HALLMARK_E2F_TARGETS', 'HALLMARK_GLYCOLYSIS',
+        #                   # 'HALLMARK_DNA_REPAIR', 'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION',
+        #                   # 'HALLMARK_IL6_JAK_STAT3_SIGNALING', 'HALLMARK_OXIDATIVE_PHOSPHORYLATION',
+        #                   # 'HALLMARK_UNFOLDED_PROTEIN_RESPONSE', 'HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY',
+        #                   # 'HALLMARK_INFLAMMATORY_RESPONSE', 'HALLMARK_UV_RESPONSE_UP',
+        #                   # 'HALLMARK_WNT_BETA_CATENIN_SIGNALING', 'HALLMARK_INTERFERON_ALPHA_RESPONSE',
+        #                   # 'HALLMARK_G2M_CHECKPOINT', 'HALLMARK_IL2_STAT5_SIGNALING', 'HALLMARK_APOPTOSIS',
+        #                   # 'HALLMARK_INTERFERON_GAMMA_RESPONSE', 'HALLMARK_ESTROGEN_RESPONSE_LATE',
+        #                   # 'HALLMARK_COAGULATION', 'HALLMARK_XENOBIOTIC_METABOLISM', 'HALLMARK_COMPLEMENT',
+        #                   # 'HALLMARK_ADIPOGENESIS', 'HALLMARK_TGF_BETA_SIGNALING', 'HALLMARK_MITOTIC_SPINDLE',
+        #                   # 'HALLMARK_MTORC1_SIGNALING', 'HALLMARK_APICAL_JUNCTION', 'HALLMARK_KRAS_SIGNALING_UP',
+        #                   # 'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM']
+        # )
 rule sm_download:
     '''
     Takes search output .txt, parses out all links and downloads them. (wget -nc) Existing up to date files out dir
@@ -182,7 +183,6 @@ rule fastq_kallisto:
     priority: 2
     input:
         fastq_dir=rules.sra_fastqdump.output,
-        # fastq_dir="out/{organism}/seq/fastq/{srr}",
         refseq="input/{organism}/seq/refseq_kallisto"
     output:
         h5=protected("out/{organism}/seq/kallisto/{srr}/abundance.h5"),
@@ -285,9 +285,9 @@ def get_postquant_passing_gse(wildcards):
             organism=wildcards.organism)
     return gse_files
 
-rule push_gse:
+rule gse_checkout:
     input: get_postquant_passing_gse
-    output: "out/{organism}/seq/push_gse_flag"
+    output: "out/{organism}/seq/gse_checkout_flag"
     shell: "touch {output}"
 
 #############################################CHIP_ROOT##################################################################

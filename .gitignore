@@ -1,5 +1,4 @@
 .snakemake
-.idea
 input
 out
 snippets
