@@ -185,7 +185,8 @@ rule fastq_kallisto:
         fastq_dir=rules.sra_fastqdump.output,
         refseq="input/{organism}/seq/refseq_kallisto"
     output:
-        h5=protected("out/{organism}/seq/kallisto/{srr}/abundance.h5"),
+        # before uncommenting h5 remove files of older versions as described in README. See NOTES on h5
+        #h5=protected("out/{organism}/seq/kallisto/{srr}/abundance.h5"),
         tsv=protected("out/{organism}/seq/kallisto/{srr}/abundance.tsv"),
         json=protected("out/{organism}/seq/kallisto/{srr}/run_info.json")
     log: "logs/{organism}/seq/fastq_kallisto/{srr}.log"

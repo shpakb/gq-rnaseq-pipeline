@@ -1,4 +1,26 @@
-# GQ rnaseq quantification pipeline
+# GEO RNA-seq and microarray meta-analysis pipeline
+
+Pipeline for large scale processing and analysis of gene expression data. Currently consists of fallowing modules:
+1) Downloading Series Matrices from GEO and gathering metadata to tsv tables. 
+2) RNA-seq quantification with Kallisto(46.1). Currently:
+    - RNA-seq samples filtered by metadata. GSE with 2-400 passing metadata filter samples are taken for quantification.
+    - 100 rounds of bootstrap. Necessary for future downstream. 
+3) 
+
+
+##NOTES:
+ - On h5 files: 
+ 
+    There is 0 bootstrap for some Rat. Most of RNA seq run on different 44.x 45.x 46.x versions with 0 bootsrap and
+without SRRxxx.h5 file in folder because it doesn't make any sense to keep it having tsv and json output and not having
+bootstrap in a run. Has to be replaced later for doing proper depressions with Sleuth. Simply remove all folders 
+without h5 files. Little bit more for Rat as those files with 0 botstrap has to be identified based on info in json
+files and then removed. Remember to "chmod +X" the directory as it's blocked by snakemake with temp() to prevent 
+accidental removing. 
+Version and number of bootstrap rounds doesn't affect anything. According to change log alignment algorithm hasn't 
+been changed between this 45-46 versions. Bootstrap is used to estimate instrumental variance. So, basically 
+this means that tsv output matrix is same for 44-46 versions with any number of bootstrap rounds. 
+some comments on bootstrap: https://www.biostars.org/p/155032/
 
 # Current input files:
 1) GGS searches 04.12.2019
@@ -9,7 +31,7 @@ Pipeline quantifies SRR files and aggregates them first to GSM and then to GSM m
 ### 1) Run docker container:
 - Better run in tmux as interactive session:
 ```bash
-bsub -Is  -q docker-interactive  -a 'docker(biolabs/snakemake:5.8.1_conda4.7.12)' /bin/bash
+bsub -Is -q docker-interactive  -a 'docker(biolabs/snakemake:5.8.1_conda4.7.12)' /bin/bash
 ```
 ### 2) Git clone snakemake repo to home directory:
 ```bash
