@@ -12,7 +12,8 @@ import re
 
 rule all:
     input:
-        "out/rn/seq/postquant_filter/gsm_stats.tsv"
+        "out/rn/seq/gsms/GSM1525852.tsv"
+        #"out/rn/seq/postquant_filter/gsm_stats.tsv"
         # expand("flags/{organism}/{platform}/pca/{n_genes}_{scale}/flag",
         #         organism=['mm'],
         #         platform=['chip'],
@@ -123,7 +124,7 @@ checkpoint prequant_filter:
     development.
     '''
     input:
-        srr_df=rules.get_srr_df.output,
+        srr_df=rules.get_srr_df.output, #depricated... remove in some distant future when have time...
         gse_df="out/{organism}/seq/sm_metadata/gse.tsv",
         gsm_df="out/{organism}/seq/sm_metadata/gsm.tsv",
         gpl_df="input/gpl.tsv",
@@ -199,9 +200,10 @@ rule fastq_kallisto:
         " > {log} 2>&1"
 
 def get_srr_for_gsm(wildcards):
-    srr_df_file = f"out/{wildcards.organism}/seq/prequant_filter/srr_gsm.tsv"
+    srr_df_file = str(rules.get_srr_df.output)
     srr_df = pd.read_csv(srr_df_file, sep="\t")
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
+    srr_list = list(set(srr_list)) # removing possible duplicates
     srr_files = \
         expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
         srr=srr_list,
