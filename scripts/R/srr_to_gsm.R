@@ -25,8 +25,6 @@ srr_df <-
     args[3] %>%
     read.csv(sep="\t", stringsAsFactors=F)
 
-print(srr_df)
-
 srr_list <-
     srr_df %>%
     filter(GSM==gsm_id) %>%
@@ -75,7 +73,6 @@ aggregate_gsm <- function(srr_list) {
 }
 
 collapse_transcripts <- function(gsm, gene_mapping) {
-    print(head(gsm))
     gsm <-
         merge(gsm,
               gene_mapping,
@@ -94,9 +91,6 @@ collapse_transcripts <- function(gsm, gene_mapping) {
 gsm <- aggregate_gsm(srr_list)
 
 gsm <- collapse_transcripts(gsm, gene_mapping)
-
-print(head(gsm))
-print(gsmFile)
 
 colnames(gsm) <- c("GENE", "EST_COUNTS", "TPM")
 
