@@ -213,7 +213,6 @@ rule srr_to_gsm:
         mem_ram=1
     input:
         srr_files=get_srr_for_gsm,
-        srr_gsm_df="out/{organism}/seq/prequant_filter/srr_gsm.tsv",
         transcript_gene="input/{organism}/seq/transcript_gene.tsv"
     output:
         "out/{organism}/seq/gsms/{gsm}.tsv"
@@ -221,7 +220,7 @@ rule srr_to_gsm:
     message: "Aggregating {wildcards.gsm} ({wildcards.organism})..."
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_gsm_df} {input.srr_files}"
+        "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_files}"
         " > {log} 2>&1"
 
 def prequant_filtered_gsm_files(wildcards):
