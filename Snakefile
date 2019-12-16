@@ -198,7 +198,7 @@ rule fastq_kallisto:
         " out/{wildcards.organism}/seq/kallisto/{wildcards.srr}" # output dir 
         " > {log} 2>&1"
 
-def get_srr_files(wildcards):
+def get_srr_for_gsm(wildcards):
     srr_df_file = f"out/{wildcards.organism}/seq/prequant_filter/srr_gsm.tsv"
     srr_df = pd.read_csv(srr_df_file, sep="\t")
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
@@ -212,7 +212,7 @@ rule srr_to_gsm:
     resources:
         mem_ram=1
     input:
-        srr_files=get_srr_files,
+        srr_files=get_srr_for_gsm,
         srr_gsm_df="out/{organism}/seq/prequant_filter/srr_gsm.tsv",
         transcript_gene="input/{organism}/seq/transcript_gene.tsv"
     output:
@@ -221,7 +221,7 @@ rule srr_to_gsm:
     message: "Aggregating {wildcards.gsm} ({wildcards.organism})..."
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_gsm_df}"
+        "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_gsm_df} {input.srr_files}"
         " > {log} 2>&1"
 
 def prequant_filtered_gsm_files(wildcards):

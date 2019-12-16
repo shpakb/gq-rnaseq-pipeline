@@ -4,7 +4,7 @@ args <- commandArgs(TRUE)
 
 cat(sprintf("Output GSM file: %s \n", args[1]))
 cat(sprintf("Gene mapping: %s \n", args[2]))
-cat(sprintf("SRR GSM df: %s \n", args[3]))
+cat(sprintf("Number of SRR files to aggregate: %i \n", args[3:length(args)]))
 
 gsmFile <- args[1]
 
@@ -21,18 +21,7 @@ gene_mapping <-
 
 colnames(gene_mapping) <- c("GENE", "TRANSCRIPT")
 
-srr_df <-
-    args[3] %>%
-    read.csv(sep="\t", stringsAsFactors=F)
-
-srr_list <-
-    srr_df %>%
-    filter(GSM==gsm_id) %>%
-    select(SRR) %>%
-    unlist() %>%
-    unique
-
-srr_list <- paste0("out/kallisto/", srr_list, "/abundance.tsv", sep="")
+srr_list <- args[3:length(args)]
 
 ##############FUNCS#################
 
