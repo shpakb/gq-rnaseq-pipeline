@@ -12,7 +12,7 @@ import re
 
 rule all:
     input:
-        "out/rn/seq/gse_checkout_flag"
+        "out/rn/seq/postquant_filter/gsm_stats.tsv"
         # expand("flags/{organism}/{platform}/pca/{n_genes}_{scale}/flag",
         #         organism=['mm'],
         #         platform=['chip'],
