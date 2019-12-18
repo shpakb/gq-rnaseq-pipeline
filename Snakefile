@@ -140,14 +140,14 @@ checkpoint prequant_filter:
         passing_gsm_list="out/{organism}/seq/prequant_filter/passing_gsm.list",
         srr_gsm_df="out/{organism}/seq/prequant_filter/srr_gsm.tsv"
     message: "Pre-quantification filtering for {wildcards.organism}..."
-    log: "logs/{organism}/seq/prequant_filter.log"
+    #log: "logs/{organism}/seq/prequant_filter.log"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/prequant_filter.R {input.gse_df} {input.gsm_df} {input.gpl_df} {input.srr_df}"
         " {params.organism} {params.min_spots} {params.max_spots} {config[quant_min_gsm]}"
         " {config[quant_max_gsm]} {output.gsm_filtering_df} {output.passing_gsm_list} {output.srr_gsm_df}"
         " {output.gsm_gse_df} {input.priority_gse_list} {config[priority_only_f]}"
-        " > {log} 2>&1"
+        #" > {log} 2>&1"
 
 rule sra_download:
     resources:
