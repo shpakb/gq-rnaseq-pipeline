@@ -10,6 +10,8 @@ from os import listdir
 from os.path import isfile, join
 import re
 
+glob_srr_df = {}
+
 rule all:
     input:
         "out/mm/seq/postquant_filter/gsm_stats.tsv"
@@ -199,15 +201,25 @@ rule fastq_kallisto:
         " {config[n_bootstrap]} " 
         " > {log} 2>&1"
 
+
 def get_srr_for_gsm(wildcards):
-    srr_df_file = str(rules.get_srr_df.output)
-    srr_df = pd.read_csv(srr_df_file, sep="\t")
+    print(f"Getting SRR for {wildcards.gsm}")
+    global glob_srr_df
+
+    # for speed. Otherwise it takes forever
+    if wildcards.organism not in glob_srr_df:
+        srr_df_file = f"out/{wildcards.organism}/seq/prequant_filter/srr_gsm.tsv"
+        srr_df = pd.read_csv(srr_df_file, sep="\t")
+        glob_srr_df[wildcards.organism] = srr_df
+
+    srr_df = glob_srr_df[wildcards.organism]
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_list = list(set(srr_list)) # removing possible duplicates
     srr_files = \
         expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
         srr=srr_list,
         organism=wildcards.organism)
+
     return srr_files
 
 rule srr_to_gsm:
@@ -226,6 +238,7 @@ rule srr_to_gsm:
         " > {log} 2>&1"
 
 def prequant_filtered_gsm_files(wildcards):
+    print("Getting prequant filtered GSM files")
     filtered_gsm_list = checkpoints.prequant_filter.get(**wildcards).output.passing_gsm_list
     gsm_list = [line.rstrip('\n') for line in open(filtered_gsm_list)]
     gsm_files=\
@@ -253,6 +266,7 @@ checkpoint postquant_filter:
         " > {log} 2>&1"
 
 def postquant_gsms_for_gse(wildcards):
+    print(f"Getting postquant filtered GSM files for {wildcards.gse}")
     gsm_gse_df_file = f"out/{wildcards.organism}/seq/postquant_filter/gsm_gse.tsv"
     gsm_gse_df = pd.read_csv(gsm_gse_df_file, sep="\t")
     gsms = gsm_gse_df[gsm_gse_df['GSE']==wildcards.gse]["GSM"].tolist()
@@ -279,6 +293,7 @@ rule gsm_to_gse:
         " > {log} 2>&1"
 
 def get_postquant_passing_gse(wildcards):
+    print("Getting list of GSE to be aggregated")
     filtered_gse_list = checkpoints.postquant_filter.get(**wildcards).output.passing_gse_list
     gses = [line.rstrip('\n') for line in open(filtered_gse_list)]
     gse_files = \
