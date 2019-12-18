@@ -12,8 +12,7 @@ import re
 
 rule all:
     input:
-        "out/rn/seq/gsms/GSM1525852.tsv"
-        #"out/rn/seq/postquant_filter/gsm_stats.tsv"
+        "out/mm/seq/postquant_filter/gsm_stats.tsv"
         # expand("flags/{organism}/{platform}/pca/{n_genes}_{scale}/flag",
         #         organism=['mm'],
         #         platform=['chip'],
@@ -124,7 +123,7 @@ checkpoint prequant_filter:
     development.
     '''
     input:
-        srr_df=rules.get_srr_df.output, #depricated... remove in some distant future when have time...
+        srr_df=rules.get_srr_df.output,
         gse_df="out/{organism}/seq/sm_metadata/gse.tsv",
         gsm_df="out/{organism}/seq/sm_metadata/gsm.tsv",
         gpl_df="input/gpl.tsv",
@@ -196,7 +195,8 @@ rule fastq_kallisto:
     shadow: "shallow"
     shell:
         "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {input.refseq}"
-        " out/{wildcards.organism}/seq/kallisto/{wildcards.srr}" # output dir 
+        " out/{wildcards.organism}/seq/kallisto/{wildcards.srr}"# output dir 
+        " {config[n_bootstrap]} " 
         " > {log} 2>&1"
 
 def get_srr_for_gsm(wildcards):

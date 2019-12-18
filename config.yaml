@@ -7,6 +7,9 @@ organism:
 # Push through pipeline only priority datasets
 priority_only_f: "False"
 
+# KALLISTO N_BOOTSTRAP
+n_bootstrap: 0
+
 #############################RESOURSES##################################################################################
 quant_mem_ram:
   hs: 12

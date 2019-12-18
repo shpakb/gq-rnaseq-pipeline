@@ -41,7 +41,7 @@ aggregate_gsm <- function(srr_list) {
     select("target_id",	"est_counts", "tpm")
   
   if (length(srr_list) > 1) {
-    for (srr_file in 2:length(srr_list)) {
+    for (srr_file in srr_list[2:length(srr_list)]) {
       srr <-
         srr_file
         read.table(sep = "\t",
