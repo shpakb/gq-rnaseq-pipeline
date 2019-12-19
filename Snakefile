@@ -179,7 +179,7 @@ rule sra_fastqdump:
         "fastq-dump --outdir {output.fastq_dir} --split-3 {input}"
         " > {log} 2>&1"
 
-checkpoint fastq_kallisto:
+rule fastq_kallisto:
     resources:
         mem_ram=lambda wildcards: config["quant_mem_ram"][wildcards.organism]
     priority: 2
@@ -205,7 +205,6 @@ def get_srr_for_gsm(wildcards):
     print(f"Getting SRR for {wildcards.gsm}")
     global glob_srr_df
 
-
     # for speed. Otherwise it takes forever
     if wildcards.organism not in glob_srr_df:
         print("Saving srr df to global var")
@@ -216,7 +215,13 @@ def get_srr_for_gsm(wildcards):
     srr_df = glob_srr_df[wildcards.organism]
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_list = list(set(srr_list)) # removing possible duplicates
-    srr_files = [checkpoints.fastq_kallisto.get(organism=wildcards.organism, srr=gsms_srr).output.tsv for gsms_srr in srr_list]
+    #srr_files = [checkpoints.fastq_kallisto.get(organism=wildcards.organism, srr=srr).output.tsv for srr in srr_list]
+
+    srr_files = \
+        expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
+        srr=srr_list,
+        organism=wildcards.organism)
+
     return srr_files
 
 checkpoint srr_to_gsm:
@@ -238,10 +243,14 @@ def prequant_filtered_gsm_files(wildcards):
     print("Getting prequant filtered GSM files")
     filtered_gsm_list = checkpoints.prequant_filter.get(**wildcards).output.passing_gsm_list
     gsm_list = [line.rstrip('\n') for line in open(filtered_gsm_list)]
-    gsm_files=\
-        expand("out/{organism}/seq/gsms/{gsm}.tsv",
-            gsm=gsm_list,
-            organism=wildcards.organism)
+
+    gsm_files = [checkpoints.srr_to_gsm.get(organism=wildcards.organism, gsm=gsm).output.tsv for gsm in gsm_list]
+
+    # gsm_files=\
+    #     expand("out/{organism}/seq/gsms/{gsm}.tsv",
+    #         gsm=gsm_list,
+    #         organism=wildcards.organism)
+
     return gsm_files
 
 checkpoint postquant_filter:
