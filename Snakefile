@@ -179,7 +179,7 @@ rule sra_fastqdump:
         "fastq-dump --outdir {output.fastq_dir} --split-3 {input}"
         " > {log} 2>&1"
 
-checkpoint fastq_kallisto:
+rule fastq_kallisto:
     resources:
         mem_ram=lambda wildcards: config["quant_mem_ram"][wildcards.organism]
     priority: 2
@@ -216,12 +216,12 @@ def get_srr_for_gsm(wildcards):
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_list = list(set(srr_list)) # removing possible duplicates
 
-    srr_files = [checkpoints.fastq_kallisto.get(organism=wildcards.organism, srr=srr).output.tsv for srr in srr_list]
+    #srr_files = [checkpoints.fastq_kallisto.get(organism=wildcards.organism, srr=srr).output.tsv for srr in srr_list]
 
-    # srr_files = \
-    #     expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
-    #     srr=srr_list,
-    #     organism=wildcards.organism)
+    srr_files = \
+        expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
+        srr=srr_list,
+        organism=wildcards.organism)
 
     return srr_files
 
