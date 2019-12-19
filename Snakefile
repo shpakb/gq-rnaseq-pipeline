@@ -179,7 +179,7 @@ rule sra_fastqdump:
         "fastq-dump --outdir {output.fastq_dir} --split-3 {input}"
         " > {log} 2>&1"
 
-rule fastq_kallisto:
+checkpoint fastq_kallisto:
     resources:
         mem_ram=lambda wildcards: config["quant_mem_ram"][wildcards.organism]
     priority: 2
@@ -201,13 +201,14 @@ rule fastq_kallisto:
         " {config[n_bootstrap]} " 
         " > {log} 2>&1"
 
-
 def get_srr_for_gsm(wildcards):
     print(f"Getting SRR for {wildcards.gsm}")
     global glob_srr_df
 
+
     # for speed. Otherwise it takes forever
     if wildcards.organism not in glob_srr_df:
+        print("Saving srr df to global var")
         srr_df_file = f"out/{wildcards.organism}/seq/prequant_filter/srr_gsm.tsv"
         srr_df = pd.read_csv(srr_df_file, sep="\t")
         glob_srr_df[wildcards.organism] = srr_df
@@ -215,14 +216,10 @@ def get_srr_for_gsm(wildcards):
     srr_df = glob_srr_df[wildcards.organism]
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_list = list(set(srr_list)) # removing possible duplicates
-    srr_files = \
-        expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
-        srr=srr_list,
-        organism=wildcards.organism)
-
+    srr_files = [checkpoints.fastq_kallisto.get(organism=wildcards.organism, srr=gsms_srr).output.tsv for gsms_srr in srr_list]
     return srr_files
 
-rule srr_to_gsm:
+checkpoint srr_to_gsm:
     resources:
         mem_ram=1
     input:
@@ -523,7 +520,6 @@ rule fgsea_genesets:
     shell:
         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output}"
         " > {log} 2>&1"
-
 
 rule prepare_pca_fgsea_result:
     input:

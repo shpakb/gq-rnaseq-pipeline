@@ -11,7 +11,7 @@ Pipeline for large scale processing and analysis of gene expression data. Curren
 ##NOTES:
  - On h5 files: 
  
-    There is 0 bootstrap for some Rat. Most of RNA seq run on different 44.x 45.x 46.x versions with 0 bootsrap and
+    Most of RNA seq run on different 44.x 45.x 46.x versions with 0 bootsrap and
 without SRRxxx.h5 file in folder because it doesn't make any sense to keep it having tsv and json output and not having
 bootstrap in a run. Has to be replaced later for doing proper depressions with Sleuth. Simply remove all folders 
 without h5 files. Little bit more for Rat as those files with 0 botstrap has to be identified based on info in json
@@ -84,6 +84,9 @@ and copying.
 For test run:
 snakemake -pr --notemp --use-conda --verbose
 
+For large DAGs 
+--batch myrule=1/3 
+
 Run test snakemake:
 snakemake --snakefile=test.smk
 
@@ -94,3 +97,5 @@ PCA query:
 3) Query one dataset by all of it's component
 4) Look individually at ranked lists
 5) Combine several lists in to joint list and look at the ranking. Re-rank by summing the rungs.
+
+  
