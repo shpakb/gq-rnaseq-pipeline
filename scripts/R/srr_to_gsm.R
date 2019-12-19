@@ -43,7 +43,7 @@ aggregate_gsm <- function(srr_list) {
   if (length(srr_list) > 1) {
     for (srr_file in srr_list[2:length(srr_list)]) {
       srr <-
-        srr_file
+        srr_file %>%
         read.table(sep = "\t",
                    header = T,
                    stringsAsFactors = F)
