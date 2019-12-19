@@ -179,7 +179,7 @@ rule sra_fastqdump:
         "fastq-dump --outdir {output.fastq_dir} --split-3 {input}"
         " > {log} 2>&1"
 
-rule fastq_kallisto:
+checkpoint fastq_kallisto:
     resources:
         mem_ram=lambda wildcards: config["quant_mem_ram"][wildcards.organism]
     priority: 2
@@ -215,16 +215,16 @@ def get_srr_for_gsm(wildcards):
     srr_df = glob_srr_df[wildcards.organism]
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_list = list(set(srr_list)) # removing possible duplicates
-    #srr_files = [checkpoints.fastq_kallisto.get(organism=wildcards.organism, srr=srr).output.tsv for srr in srr_list]
+    srr_files = [checkpoints.fastq_kallisto.get(organism=wildcards.organism, srr=srr).output.tsv for srr in srr_list]
 
-    srr_files = \
-        expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
-        srr=srr_list,
-        organism=wildcards.organism)
+    # srr_files = \
+    #     expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
+    #     srr=srr_list,
+    #     organism=wildcards.organism)
 
     return srr_files
 
-checkpoint srr_to_gsm:
+rule srr_to_gsm:
     resources:
         mem_ram=1
     input:
@@ -243,14 +243,11 @@ def prequant_filtered_gsm_files(wildcards):
     print("Getting prequant filtered GSM files")
     filtered_gsm_list = checkpoints.prequant_filter.get(**wildcards).output.passing_gsm_list
     gsm_list = [line.rstrip('\n') for line in open(filtered_gsm_list)]
-
-    gsm_files = [checkpoints.srr_to_gsm.get(organism=wildcards.organism, gsm=gsm).output.tsv for gsm in gsm_list]
-
-    # gsm_files=\
-    #     expand("out/{organism}/seq/gsms/{gsm}.tsv",
-    #         gsm=gsm_list,
-    #         organism=wildcards.organism)
-
+    #gsm_files = [checkpoints.srr_to_gsm.get(organism=wildcards.organism, gsm=gsm).output.tsv for gsm in gsm_list]
+    gsm_files=\
+        expand("out/{organism}/seq/gsms/{gsm}.tsv",
+            gsm=gsm_list,
+            organism=wildcards.organism)
     return gsm_files
 
 checkpoint postquant_filter:

@@ -4,7 +4,7 @@ args <- commandArgs(TRUE)
 
 cat(sprintf("Output GSM file: %s \n", args[1]))
 cat(sprintf("Gene mapping: %s \n", args[2]))
-cat(sprintf("Number of SRR files to aggregate: %i \n", args[3:length(args)]))
+cat(sprintf("Number of SRR files to aggregate: %i \n", length(args)-2))
 
 gsmFile <- args[1]
 
