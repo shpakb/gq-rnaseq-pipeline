@@ -215,6 +215,7 @@ def get_srr_for_gsm(wildcards):
     srr_df = glob_srr_df[wildcards.organism]
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_list = list(set(srr_list)) # removing possible duplicates
+
     srr_files = [checkpoints.fastq_kallisto.get(organism=wildcards.organism, srr=srr).output.tsv for srr in srr_list]
 
     # srr_files = \
