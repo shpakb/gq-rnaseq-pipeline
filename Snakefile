@@ -595,7 +595,7 @@ def get_srr_for_gsm(wildcards):
     # for speed. Otherwise it takes forever
     if wildcards.organism not in glob_srr_df:
         print("Saving srr df to global var")
-        srr_df_file = f"out/{wildcards.organism}/seq/prequant_filter/srr_gsm.tsv"
+        srr_df_file = "out/data/srr_gsm_spots.tsv"
         srr_df = pd.read_csv(srr_df_file, sep="\t")
         glob_srr_df[wildcards.organism] = srr_df
 
