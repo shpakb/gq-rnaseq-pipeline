@@ -4,25 +4,12 @@ args <- commandArgs(TRUE)
 
 gse_file <- args[1]
 gse_id <- gse_file %>% str_extract("GSE\\d+")
-gsm_folder <- args[2]
-gene_anotation_file <- args[3]
-gsm_gse_df_file <- args[4]
+gene_anotation_file <- args[2]
+gsm_files <- args[3:length(args)]
 
 cat(sprintf("Working on: %s \n", gse_id))
 cat(sprintf("Output file: %s \n", gse_file))
-cat(sprintf("GSM folder: %s \n", gsm_folder))
 cat(sprintf("Gene annotation: %s \n", gene_anotation_file))
-cat(sprintf("GSM GSE df file: %s \n", gsm_gse_df_file))
-
-gsm_files <-
-    gsm_gse_df_file %>%
-    read.csv(sep="\t") %>%
-    filter(GSE==gse_id) %>%
-    select(GSM) %>%
-    unlist() %>%
-    unique %>%
-    paste0(gsm_folder, "/", ., ".tsv", sep="")
-
 cat(sprintf("Aggregating %i GSM \n", length(gsm_files)))
 
 print(args)

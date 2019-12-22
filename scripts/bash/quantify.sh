@@ -28,7 +28,7 @@ elif [[ $N == 3 ]]
 then
   echo "Three fastq files found; removing single-end reads and processing sample $SRR as a paired-ended experiment."
   echo "$REFSEQ -o $SRR $SRR_PREF*.fastq"
-  kallisto quant -b $N_BOOTSTRAPS -i $REFSEQ -o $OUTPUT_DIR $SRR_PREF*.fastq
+  kallisto quant -b $N_BOOTSTRAPS -i $REFSEQ -o $OUTPUT_DIR ${SRR_PREF}_*.fastq
 elif [[ $N == 1 ]]
 then
   echo "One fastq file found; processing sample $SRR as a single-ended experiment."
