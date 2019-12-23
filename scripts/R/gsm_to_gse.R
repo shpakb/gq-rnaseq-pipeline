@@ -53,10 +53,10 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 
   # select(gene)
   gse_cpm <- gse_tpm
-
+  count <- 0
   for (gsm_file in gsm_files) {
     gsm_id <- gsm_file %>% str_extract("GSM\\d+")
-      print(gsm_id)
+    print(gsm_id)
     gsm <-
       gsm_file %>%
       read.csv(sep = "\t",
@@ -71,6 +71,9 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
       gse_cpm %>%
       cbind(gsm$CPM)
     colnames(gse_cpm)[ncol(gse_cpm)] <- gsm_id
+
+    print(count)
+    count <- count + 1
   }
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
   rownames(gse_tpm) <- gse_tpm$ENTREZ
@@ -99,9 +102,10 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 
 # getting filtered list of gsm for GSE
 # filtering list by QC
+print("Aggregating exp table...")
 gse <- aggregate_gse(gsm_files, geneAnnot)
 
-# rounding for compression
+print("Rounding expression table...")
 gse[, unlist(lapply(gse, is.numeric))] <-
   round(gse[, unlist(lapply(gse, is.numeric))], 3)
 
