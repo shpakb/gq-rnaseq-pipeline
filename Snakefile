@@ -315,6 +315,8 @@ checkpoint postquant_filter:
         " > {log} 2>&1"
 
 rule gsm_to_gse:
+    resources:
+        mem_ram=6
     input:
         gsm_files=get_gsm_for_gse,
         gene_mapping="input/{organism}/seq/ensembl_symbol_entrez.tsv"
