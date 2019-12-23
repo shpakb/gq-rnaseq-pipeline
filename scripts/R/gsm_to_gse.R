@@ -24,6 +24,7 @@ geneAnnot <-
 
 colnames(geneAnnot) <- c("GENE", "SYMBOL", "ENTREZ")
 
+head(geneAnnot)
 
 #############################FUNCTIONS############################
 
@@ -35,6 +36,7 @@ max2 <- function(array) {
 # annotates GSE with Entrez gene annotation
 # aggregates Entrez probes with same name by max value
 annotate_genes <- function(gse, geneAnnot) {
+
   gse <-
     merge(geneAnnot, gse, by="GENE") %>%
     select(-c("GENE", "SYMBOL"))
@@ -75,8 +77,8 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
   }
 
   print("Annotating tpm table...")
-  print(head(gsm_tpm))
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
+  print(head(gsm_tpm))
   rownames(gse_tpm) <- gse_tpm$ENTREZ
   gse_tpm$ENTREZ <- NULL
   print("Anotation cpm table...")
