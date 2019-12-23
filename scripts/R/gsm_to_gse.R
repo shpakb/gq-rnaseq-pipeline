@@ -22,7 +22,6 @@ geneAnnot <-
     filter(V3!="NONE")
 
 colnames(geneAnnot) <- c("GENE", "SYMBOL", "ENTREZ")
-print(head(geneAnnot))
 #############################FUNCTIONS############################
 
 max2 <- function(array) {
@@ -41,6 +40,7 @@ annotate_genes <- function(gse, geneAnnot) {
   gse <-
     gse %>%
     aggregate(.~ENTREZ, ., sum)
+
   return(gse)
 }
 
@@ -74,13 +74,13 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 
   print("Annotating tpm table...")
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
-  print(head(gse_tpm))
+
   rownames(gse_tpm) <- gse_tpm$ENTREZ
-  gse_tpm$ENTREZ <- NULL
+  gse_tpm <- gse_tpm %>% select(-c(EST_COUNTS, ENTREZ, TPM))
   print("Anotation cpm table...")
   gse_cpm <- annotate_genes(gse_cpm, geneAnnot)
   rownames(gse_cpm) <- gse_cpm$ENTREZ
-  gse_cpm$ENTREZ <- NULL
+  gse_cpm <- gse_cpm %>% select(-c(EST_COUNTS, ENTREZ, TPM))
 
   print("Sorting genes according to tpm...")
   gse_tpm$MAX2 <- apply(gse_tpm, 1, FUN = max2)
