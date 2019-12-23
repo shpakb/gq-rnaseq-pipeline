@@ -54,7 +54,6 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 
   # select(gene)
   gse_cpm <- gse_tpm
-  count <- 0
   for (gsm_file in gsm_files) {
     gsm_id <- gsm_file %>% str_extract("GSM\\d+")
     gsm <-
