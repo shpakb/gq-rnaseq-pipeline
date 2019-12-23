@@ -33,7 +33,7 @@ rule all:
         expand("out/{organism}/{platform}/pca_fgsea/"
                "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
                "prepared/{geneset_name}.tsv",
-            organism=['rn'],
+            organism=['mm'],
             platform=['chip'],
             max_genes=config['pca_n_genes'],
             scale=config['pca_scale'],
