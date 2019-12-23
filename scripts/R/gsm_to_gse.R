@@ -22,6 +22,8 @@ geneAnnot <-
            header = F) %>%
   filter(V3!="NONE")
 
+print(head(geneAnnot))
+
 colnames(geneAnnot) <- c("GENE", "SYMBOL", "ENTREZ")
 
 print(head(geneAnnot))
@@ -78,6 +80,7 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
 
   print(head(gse_tpm))
+
   rownames(gse_tpm) <- gse_tpm$ENTREZ
   gse_tpm$ENTREZ <- NULL
   print("Anotation cpm table...")
