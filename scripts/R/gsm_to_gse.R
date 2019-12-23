@@ -55,12 +55,13 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
   gse_cpm <- gse_tpm
   count <- 0
   for (gsm_file in gsm_files) {
+    print(gsm_file)
     gsm_id <- gsm_file %>% str_extract("GSM\\d+")
-    print(gsm_id)
     gsm <-
       gsm_file %>%
       read.csv(sep = "\t",
                stringsAsFactors = F)
+    print(head(gsm))
     # from "est_counts" to cpm
     gsm$CPM <- (gsm$EST_COUNTS/sum(gsm$EST_COUNTS))*10^6
 

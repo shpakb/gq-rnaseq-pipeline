@@ -14,7 +14,7 @@ glob_srr_df = {}
 glob_gse_gsm_df = {}
 
 # TODO: aggregate full matrices with all GSM and
-# TODO: aggregate filtered by number of expressed genes in sepparate folder
+# TODO: aggregate filtered by number of expressed genes in separate folder
 
 rule all:
     input:
