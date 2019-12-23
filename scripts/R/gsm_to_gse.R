@@ -63,10 +63,12 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
                stringsAsFactors = F)
     # from "est_counts" to cpm
     gsm$CPM <- (gsm$EST_COUNTS/sum(gsm$EST_COUNTS))*10^6
+
     gse_tpm <-
       gse_tpm %>%
       cbind(gsm$TPM)
     colnames(gse_tpm)[ncol(gse_tpm)] <- gsm_id
+
     gse_cpm <-
       gse_cpm %>%
       cbind(gsm$CPM)
@@ -75,15 +77,16 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
     print(count)
     count <- count + 1
   }
+  print("Annotating tpm table...")
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
   rownames(gse_tpm) <- gse_tpm$ENTREZ
   gse_tpm$ENTREZ <- NULL
-
+  print("Anotation cpm table...")
   gse_cpm <- annotate_genes(gse_cpm, geneAnnot)
   rownames(gse_cpm) <- gse_cpm$ENTREZ
   gse_cpm$ENTREZ <- NULL
 
-  #get genes sorted
+  print("Sorting genes according to tpm...")
   gse_tpm$MAX2 <- apply(gse_tpm, 1, FUN = max2)
 
   gse_tpm <-
