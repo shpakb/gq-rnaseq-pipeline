@@ -32,25 +32,41 @@ output_df <-
     stringsAsFactors = FALSE
   )
 
-cores <- detectCores()
-cl <- makeCluster(cores[1])
-registerDoParallel(cl)
+# cores <- detectCores()
+# cl <- makeCluster(cores[1])
+# cl <- makeCluster(2)
+# registerDoParallel(cl)
 
-cat(sprintf("Number of cores: %i \n", cores[1]))
+# cat(sprintf("Number of cores: %i \n", cores[1]))
 
-output_df <- foreach(pc_name=names(pc_list),.combine=rbind) %do% {
+# output_df <- foreach(pc_name=names(pc_list),.combine=rbind) %do% {
+#       pc <- pc_list[[pc_name]]
+#       n_genes <- length(pc)
+#       fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
+#       fgsea_out <- fgsea_out %>% select(padj, NES, size) %>% unlist %>% unname
+#       fgsea_out <- c(pc_name, fgsea_out)
+#       fgsea_out
+# }
+
+for(pc_name in names(pc_list)){
+      print(pc_name)
       pc <- pc_list[[pc_name]]
+
       n_genes <- length(pc)
       fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
       fgsea_out <- fgsea_out %>% select(padj, NES, size) %>% unlist %>% unname
+
       fgsea_out <- c(pc_name, fgsea_out)
-      fgsea_out
+
+      output_df <- rbind(output_df, fgsea_out)
 }
 
-stopCluster(cl)
+# stopCluster(cl)
 
-colnames(output_df) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
+# colnames(output_df) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
 
 print("Writing results")
+
+output_df <- output_df[2:nrow(output_df),]
 
 write.table(output_df, output_file, col.names = T, row.names = F, sep = "\t", quote=F)

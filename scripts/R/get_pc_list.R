@@ -20,12 +20,12 @@ for (pca_file in pca_files) {
     tag <- pca_file %>% str_extract("GSE\\d+-GPL\\d+|GSE\\d+")
 
     # % of explained variance vector for all PC
-    # pev <- (pca$sdev)^2 / sum(pca$sdev^2) * 100
+    pev <- (pca$sdev)^2 / sum(pca$sdev^2) * 100
     # chose how many first PC take from pca.
-    # n_comp <- min(max_comp, ncol(pca$rotation), sum(pev > explained_var_threshold))
-    # componets <-
-    #   as.data.frame(pca$rotation)[,1:n_comp] %>%
-    #   as.list()
+    n_comp <- min(max_comp, ncol(pca$rotation), sum(pev > explained_var_threshold))
+    componets <-
+      as.data.frame(pca$rotation)[,1:n_comp] %>%
+      as.list()
 
     componets <-
       as.data.frame(pca$rotation) %>%
