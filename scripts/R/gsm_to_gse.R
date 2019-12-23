@@ -19,13 +19,12 @@ geneAnnot <-
   args[3] %>%
   read.csv(stringsAsFactors = F,
            sep = "\t",
-           header = F) %>%
+           header = T) %>%
   filter(V3!="NONE")
 
 colnames(geneAnnot) <- c("GENE", "SYMBOL", "ENTREZ")
 
-head(geneAnnot)
-
+print(head(geneAnnot))
 #############################FUNCTIONS############################
 
 max2 <- function(array) {
@@ -78,7 +77,8 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 
   print("Annotating tpm table...")
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
-  print(head(gsm_tpm))
+
+  print(head(gse_tpm))
   rownames(gse_tpm) <- gse_tpm$ENTREZ
   gse_tpm$ENTREZ <- NULL
   print("Anotation cpm table...")
