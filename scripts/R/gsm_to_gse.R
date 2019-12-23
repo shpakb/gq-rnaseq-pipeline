@@ -2,7 +2,6 @@ suppressMessages(library(tidyverse))
 
 args <- commandArgs(TRUE)
 
-
 gene_anotation_file <- args[1]
 gse_file <- args[2]
 gse_id <- gse_file %>% str_extract("GSE\\d+")
@@ -16,17 +15,14 @@ cat(sprintf("Aggregating %i GSM \n", length(gsm_files)))
 # getting Ensamble to Entrez mapping
 # removing all genes without Entrez annotation
 geneAnnot <-
-  args[3] %>%
+  gene_anotation_file %>%
   read.csv(stringsAsFactors = F,
            sep = "\t",
            header = F) %>%
-  filter(V3!="NONE")
-
-print(head(geneAnnot))
+    filter(V3!="NONE")
 
 colnames(geneAnnot) <- c("GENE", "SYMBOL", "ENTREZ")
 
-print(head(geneAnnot))
 #############################FUNCTIONS############################
 
 max2 <- function(array) {
@@ -78,8 +74,6 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 
   print("Annotating tpm table...")
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
-
-  print(head(gse_tpm))
 
   rownames(gse_tpm) <- gse_tpm$ENTREZ
   gse_tpm$ENTREZ <- NULL
