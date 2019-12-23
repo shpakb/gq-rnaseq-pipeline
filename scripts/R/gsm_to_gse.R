@@ -19,7 +19,7 @@ geneAnnot <-
   args[3] %>%
   read.csv(stringsAsFactors = F,
            sep = "\t",
-           header = T) %>%
+           header = F) %>%
   filter(V3!="NONE")
 
 colnames(geneAnnot) <- c("GENE", "SYMBOL", "ENTREZ")
