@@ -75,6 +75,7 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
   }
 
   print("Annotating tpm table...")
+  print(head(gsm_tpm))
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
   rownames(gse_tpm) <- gse_tpm$ENTREZ
   gse_tpm$ENTREZ <- NULL
