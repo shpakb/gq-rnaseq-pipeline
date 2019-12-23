@@ -22,7 +22,7 @@ geneAnnot <-
     filter(V3!="NONE")
 
 colnames(geneAnnot) <- c("GENE", "SYMBOL", "ENTREZ")
-
+print(head(geneAnnot))
 #############################FUNCTIONS############################
 
 max2 <- function(array) {
@@ -74,7 +74,7 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 
   print("Annotating tpm table...")
   gse_tpm <- annotate_genes(gse_tpm, geneAnnot)
-
+  print(head(gse_tpm))
   rownames(gse_tpm) <- gse_tpm$ENTREZ
   gse_tpm$ENTREZ <- NULL
   print("Anotation cpm table...")
