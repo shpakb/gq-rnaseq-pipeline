@@ -53,7 +53,7 @@ output_df <- foreach(pc_name=names(pc_list),
           file="/gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/log.txt",
           append=TRUE)
 
-      return(fgsea_out)
+      fgsea_out
 }
 
 print("FGSEA complete...")
