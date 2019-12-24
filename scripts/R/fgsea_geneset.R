@@ -23,59 +23,29 @@ cat(sprintf("Number of PC: %i \n", length(pc_list)))
 # removing artifact lines from GQ
 geneset <- geneset[3:length(geneset)] %>% data.table()
 
+
 output_df <-
   data.frame(
     PC_NAME="blank",
-    PADJ=0,
-    NES=0,
-    SIZE=0,
+    GSEA_STAT=0,
+    INTERSECTION=0,
     stringsAsFactors = FALSE
   )
 
-# cores <- detectCores()
-cl <- makeCluster(8)
-registerDoParallel(cl)
-
-# cat(sprintf("Number of cores: %i \n", cores[1]))
-output_df <- foreach(pc_name=names(pc_list),
-                     .combine=rbind,
-                     .export = ls(globalenv()),
-                     .packages = c("tidyverse", "fgsea")) %dopar% {
-      pc <- pc_list[[pc_name]]
-      n_genes <- length(pc)
-      fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
-      fgsea_out <- fgsea_out %>% select(padj, NES, size)
-      fgsea_out <- cbind(pc_name, fgsea_out)
-      colnames(fgsea_out) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
-      # cat(sprintf("%i \n", count),
-      #     file="/gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/log.txt",
-      #     append=TRUE)
-
-      fgsea_out
+for (pc_name in names(pc_list)){
+  tryCatch({
+    print(pc_name)
+    pc <- pc_list[[pc_name]]
+    n_genes <- length(pc)
+    gene_intersection <- na.omit(match(geneset, names(pc)))
+    gsea_stat <- fgsea::calcGseaStat(pc, gene_intersection)
+    output_df <- rbind(output_df, c(pc_name, gsea_stat, length(gene_intersection)))
+ }, error = function(e) {
+    print("woops!")
+    print(e$message)
+  })
 }
 
-print("FGSEA complete...")
-# for(pc_name in names(pc_list)){
-#       print(pc_name)
-#       pc <- pc_list[[pc_name]]
-#
-#       n_genes <- length(pc)
-#       fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
-#       fgsea_out <- fgsea_out %>% select(padj, NES, size) %>% unlist %>% unname
-#
-#       fgsea_out <- c(pc_name, fgsea_out)
-#
-#       output_df <- rbind(output_df, fgsea_out)
-# }
-
-stopCluster(cl)
-
-# print(output_df)
-# fgsea_out <- as.data.frame(fgsea_out)
-print(output_df)
-
-print("Writing results...")
-
-# output_df <- output_df[2:nrow(output_df),]
+print("Writing results")
 
 write.table(output_df, output_file, col.names = T, row.names = F, sep = "\t", quote=F)
