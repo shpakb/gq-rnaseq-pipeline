@@ -34,7 +34,7 @@ output_df <-
 
 # cores <- detectCores()
 cl <- makeCluster(20)
-registerDoParallel(cl, outfile="/gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/log.txt")
+registerDoParallel(cl)
 
 # cat(sprintf("Number of cores: %i \n", cores[1]))
 count <- 0
