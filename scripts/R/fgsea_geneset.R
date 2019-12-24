@@ -42,12 +42,14 @@ output_df <- foreach(pc_name=names(pc_list),.combine=rbind) %do% {
       pc <- pc_list[[pc_name]]
       n_genes <- length(pc)
       fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
-      fgsea_out <- fgsea_out %>% select(padj, NES, size) %>% unlist %>% unname
-      fgsea_out <- c(pc_name, fgsea_out)
+      fgsea_out <- fgsea_out %>% select(padj, NES, size)
+      fgsea_out <- cbind(pc_name, fgsea_out)
+      colnames(fgsea_out) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
       count <- count + 1
       cat(sprintf("%i \n", count),
           file="/gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/log.txt",
           append=TRUE)
+
       return(fgsea_out)
 }
 
@@ -70,8 +72,6 @@ stopCluster(cl)
 print(fgsea_out)
 fgsea_out <- as.data.frame(fgsea_out)
 print(fgsea_out)
-
-colnames(fgsea_out) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
 
 print("Writing results...")
 
