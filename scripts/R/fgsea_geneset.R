@@ -41,7 +41,7 @@ count <- 0
 output_df <- foreach(pc_name=names(pc_list),
                      .combine=rbind,
                      .export = ls(globalenv()),
-                     .packages = c("tidyr", "fgsea")) %dopar% {
+                     .packages = c("tidyverse", "fgsea")) %dopar% {
       pc <- pc_list[[pc_name]]
       n_genes <- length(pc)
       fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
