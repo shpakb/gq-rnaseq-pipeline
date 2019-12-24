@@ -49,9 +49,9 @@ output_df <- foreach(pc_name=names(pc_list),
       fgsea_out <- cbind(pc_name, fgsea_out)
       colnames(fgsea_out) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
       count <- count + 1
-      cat(sprintf("%i \n", count),
-          file="/gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/log.txt",
-          append=TRUE)
+      # cat(sprintf("%i \n", count),
+      #     file="/gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/log.txt",
+      #     append=TRUE)
 
       fgsea_out
 }
