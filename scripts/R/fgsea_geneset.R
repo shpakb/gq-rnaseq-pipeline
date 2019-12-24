@@ -48,7 +48,7 @@ output_df <- foreach(pc_name=names(pc_list),.combine=rbind) %do% {
       cat(sprintf("%i \n", count),
           file="/gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/log.txt",
           append=TRUE)
-      fgsea_out
+      return(fgsea_out)
 }
 
 print("FGSEA complete...")
