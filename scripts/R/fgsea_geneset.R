@@ -72,12 +72,12 @@ print("FGSEA complete...")
 
 stopCluster(cl)
 
-print(fgsea_out)
-fgsea_out <- as.data.frame(fgsea_out)
-print(fgsea_out)
+# print(output_df)
+# fgsea_out <- as.data.frame(fgsea_out)
+print(output_df)
 
 print("Writing results...")
 
 # output_df <- output_df[2:nrow(output_df),]
 
-write.table(fgsea_out, output_file, col.names = T, row.names = F, sep = "\t", quote=F)
+write.table(output_df, output_file, col.names = T, row.names = F, sep = "\t", quote=F)
