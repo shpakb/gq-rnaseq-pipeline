@@ -67,6 +67,10 @@ print("FGSEA complete...")
 
 stopCluster(cl)
 
+print(fgsea_out)
+fgsea_out <- as.data.frame(fgsea_out)
+print(fgsea_out)
+
 colnames(fgsea_out) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
 
 print("Writing results...")
