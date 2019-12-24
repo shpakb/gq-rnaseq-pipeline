@@ -33,7 +33,7 @@ output_df <-
   )
 
 # cores <- detectCores()
-cl <- makeCluster(20)
+cl <- makeCluster(10)
 registerDoParallel(cl)
 
 # cat(sprintf("Number of cores: %i \n", cores[1]))
