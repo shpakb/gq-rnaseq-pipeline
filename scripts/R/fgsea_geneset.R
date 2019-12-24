@@ -19,10 +19,10 @@ pc_list <- readRDS(pc_list_file)
 geneset <- readLines(geneset_file)
 
 cat(sprintf("Number of PC: %i \n", length(pc_list)))
+cat(sprintf("Number of genes in geneset: %i \n", (length(geneset) - 2)))
 
 # removing artifact lines from GQ
 geneset <- geneset[3:length(geneset)] %>% data.table()
-
 
 output_df <-
   data.frame(
