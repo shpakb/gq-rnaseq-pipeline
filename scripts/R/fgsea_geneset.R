@@ -38,7 +38,10 @@ registerDoParallel(cl)
 
 cat(sprintf("Number of cores: %i \n", cores[1]))
 count <- 0
-output_df <- foreach(pc_name=names(pc_list),.combine=rbind,.export = ls(globalenv())) %dopar% {
+output_df <- foreach(pc_name=names(pc_list),
+                     .combine=rbind,
+                     .export = ls(globalenv(),
+                     .packages = c("tidyverse", "fgsea", "data.table"))) %dopar% {
       pc <- pc_list[[pc_name]]
       n_genes <- length(pc)
       fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
