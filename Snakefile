@@ -429,6 +429,8 @@ def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=in
     QC logic and rooting for choosing files for downstream analysis.
     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
     """
+    print(f"Getting filtered exp matrices for {wildcards.organism} {wildcards.platform}...")
+
     if wildcards.platform=="chip":
         sm_qc_df_file = str(checkpoints.get_exp_mat_qc_df.get(**wildcards).output)
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
@@ -456,6 +458,8 @@ def get_filtered_tags(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
     QC logic and rooting for choosing files for downstream analysis.
     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
     """
+    print(f"Getting filtered exp matrices for {wildcards.organism} {wildcards.platform}...")
+
     if wildcards.platform=="chip":
         sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_qc_df.tsv"
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
@@ -552,10 +556,8 @@ rule fgsea_genesets:
     '''
     Performs fgsea against list of PC components. Outputs ranked list of results with NES.
     '''
-    # resources:
-    #     mem_ram=20,
-    #     time=360,
-    #     cores=8
+    resources:
+        mem_ram=20
     input:
         pc_list=rules.get_pc_list.output,
         geneset="input/{organism}/genesets/{geneset_name}",
