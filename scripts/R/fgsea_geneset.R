@@ -37,19 +37,16 @@ cl <- makeCluster(10)
 registerDoParallel(cl)
 
 # cat(sprintf("Number of cores: %i \n", cores[1]))
-count <- 0
 output_df <- foreach(pc_name=names(pc_list),
                      .combine=rbind,
                      .export = ls(globalenv()),
                      .packages = c("tidyverse", "fgsea")) %dopar% {
       pc <- pc_list[[pc_name]]
-      print(pc_name)
       n_genes <- length(pc)
       fgsea_out <- fgsea::fgseaMultilevel(geneset, pc)
       fgsea_out <- fgsea_out %>% select(padj, NES, size)
       fgsea_out <- cbind(pc_name, fgsea_out)
       colnames(fgsea_out) <- c("PC_NAME", "PADJ", "NES", "INTERSECTION_SIZE")
-      count <- count + 1
       # cat(sprintf("%i \n", count),
       #     file="/gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/log.txt",
       #     append=TRUE)
