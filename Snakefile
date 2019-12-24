@@ -572,19 +572,20 @@ rule fgsea_genesets:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp}"
-    log:
-        "logs/{organism}/{platform}/fgsea_genesets/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
-        "{geneset_name}.log"
+    # log:
+    #     "logs/{organism}/{platform}/fgsea_genesets/"
+    #     "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+    #     "{geneset_name}.log"
     conda: "envs/fgsea.yaml"
     shell:
         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output}"
-        " > {log} 2>&1"
+        # " > {log} 2>&1"
 
 rule prepare_pca_fgsea_result:
     input:
         gsea_results=rules.fgsea_genesets.output,
-        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
+        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv",
+        es_normalization_map="input/gsea_normalization.tsv"
     output:
         "out/{organism}/{platform}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/"
         "prepared/{geneset_name}.tsv"
@@ -595,14 +596,15 @@ rule prepare_pca_fgsea_result:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp}"
-    log:
-        "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
-        "{geneset_name}.log"
+    # log:
+    #     "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
+    #     "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+    #     "{geneset_name}.log"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
-        " > {log} 2>&1"
+        "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df}"
+        " {output} {input.es_normalization_map}"
+        # " > {log} 2>&1"
 
 
 #########################################WGCNA##########################################################################

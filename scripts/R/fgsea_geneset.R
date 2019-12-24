@@ -22,7 +22,7 @@ cat(sprintf("Number of PC: %i \n", length(pc_list)))
 cat(sprintf("Number of genes in geneset: %i \n", (length(geneset) - 2)))
 
 # removing artifact lines from GQ
-geneset <- geneset[3:length(geneset)] %>% data.table()
+geneset <- geneset[3:length(geneset)]
 
 output_df <-
   data.frame(
@@ -32,11 +32,11 @@ output_df <-
     stringsAsFactors = FALSE
   )
 
+
 for (pc_name in names(pc_list)){
   tryCatch({
     print(pc_name)
     pc <- pc_list[[pc_name]]
-    n_genes <- length(pc)
     gene_intersection <- na.omit(match(geneset, names(pc)))
     gsea_stat <- fgsea::calcGseaStat(pc, gene_intersection)
     output_df <- rbind(output_df, c(pc_name, gsea_stat, length(gene_intersection)))
@@ -45,6 +45,8 @@ for (pc_name in names(pc_list)){
     print(e$message)
   })
 }
+
+output_df <- output_df[2:nrow(output_df),]
 
 print("Writing results")
 
