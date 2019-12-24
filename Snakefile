@@ -558,7 +558,7 @@ rule fgsea_genesets:
     '''
     resources:
         mem_ram=16,
-        cores=4
+        cores=8
     input:
         pc_list=rules.get_pc_list.output,
         geneset="input/{organism}/genesets/{geneset_name}",
