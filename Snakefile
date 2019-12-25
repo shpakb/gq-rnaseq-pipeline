@@ -30,16 +30,16 @@ rule all:
         #         platform=['chip'],
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
-        expand("out/{organism}/{platform}/pca_fgsea/"
-               "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
-               "prepared/{geneset_name}.tsv",
-            organism=['mm'],
-            platform=['chip'],
-            max_genes=config['pca_n_genes'],
-            scale=config['pca_scale'],
-            max_comp="10",
-            var_threshold="0.02",
-            geneset_name=['HALLMARK_HYPOXIA'])# 'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING']
+        # expand("out/{organism}/{platform}/pca_fgsea/"
+        #        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        #        "prepared/{geneset_name}.tsv",
+        #     organism=['mm'],
+        #     platform=['chip'],
+        #     max_genes=config['pca_n_genes'],
+        #     scale=config['pca_scale'],
+        #     max_comp="10",
+        #     var_threshold="0.02",
+        #     geneset_name=['HALLMARK_HYPOXIA'])# 'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING']
         #                   #'HALLMARK_SPERMATOGENESIS', 'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
         #                   # 'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
         #                   # 'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
