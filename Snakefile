@@ -60,7 +60,9 @@ rule all:
         #                   # 'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM']
         # )
 
-def filter_gsm_df(gsm_df_file, organism, min_gsm=None, max_gsm=None, min_spots=None, max_spots=None, srr_df_file=None):
+def filter_gsm_df(gsm_df_file, organism,
+                  min_gsm=None, max_gsm=None,
+                  min_spots=None, max_spots=None, srr_df_file=None):
     """
     Takes GSM metadata df and organism var={hs/mm/rn}
     Returns filtered mapping from GSE to GSM for particular organism.
@@ -572,14 +574,14 @@ rule fgsea_genesets:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp}"
-    # log:
-    #     "logs/{organism}/{platform}/fgsea_genesets/"
-    #     "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
-    #     "{geneset_name}.log"
+    log:
+        "logs/{organism}/{platform}/fgsea_genesets/"
+        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{geneset_name}.log"
     conda: "envs/fgsea.yaml"
     shell:
         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output}"
-        # " > {log} 2>&1"
+        " > {log} 2>&1"
 
 rule prepare_pca_fgsea_result:
     input:
@@ -596,15 +598,15 @@ rule prepare_pca_fgsea_result:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp}"
-    # log:
-    #     "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
-    #     "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
-    #     "{geneset_name}.log"
+    log:
+        "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
+        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{geneset_name}.log"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df}"
         " {output} {input.es_normalization_map}"
-        # " > {log} 2>&1"
+        " > {log} 2>&1"
 
 
 #########################################WGCNA##########################################################################

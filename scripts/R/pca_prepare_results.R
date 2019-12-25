@@ -49,6 +49,8 @@ gsea_results_df <- merge(gsea_results_df, gse_df, all.x=T)
 
 gsea_results_df$GSE <- NULL
 
+gsea_results_df <- gsea_results_df[order(abs(gsea_results_df$NES), decreasing = T),]
+
 write.table(gsea_results_df, annotated_output_file, col.names = T, row.names = F, sep = "\t", quote=F)
 
 print("Done.")
