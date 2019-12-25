@@ -32,7 +32,6 @@ max2 <- function(array) {
 # annotates GSE with Entrez gene annotation
 # aggregates Entrez probes with same name by max value
 annotate_genes <- function(gse, geneAnnot) {
-
   gse <-
     merge(geneAnnot, gse, by="GENE") %>%
     select(-c("GENE", "SYMBOL"))
@@ -65,9 +64,8 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
 
   print("Anotating genes...")
   gse <- annotate_genes(gse, geneAnnot)
-  rownames(gse) <- gse$ENTREZ
 
-  gse <- gse %>% select(-c(EST_COUNTS, ENTREZ, TPM))
+  gse <- gse %>% select(-c(EST_COUNTS, TPM))
 
   return(gse)
 }
@@ -80,6 +78,8 @@ print("Aggregating exp table...")
 gse <- aggregate_gse(gsm_files, geneAnnot)
 
 print("Writing expression table...")
+
+
 write.table(x=gse,
             gse_file,
             sep = "\t",
