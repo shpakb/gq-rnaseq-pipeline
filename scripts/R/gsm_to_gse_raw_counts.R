@@ -66,7 +66,8 @@ aggregate_gse <- function(gsm_files, geneAnnot) {
   print("Anotating genes...")
   gse <- annotate_genes(gse, geneAnnot)
   rownames(gse) <- gse$ENTREZ
-  gse_ <- gse %>% select(-c(EST_COUNTS, ENTREZ, TPM))
+
+  gse <- gse %>% select(-c(EST_COUNTS, ENTREZ, TPM))
 
   return(gse)
 }
