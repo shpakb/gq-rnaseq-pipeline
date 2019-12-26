@@ -87,6 +87,12 @@ snakemake -pr --notemp --use-conda --verbose
 For large DAGs 
 --batch myrule=1/3 
 
+Omits jobs downstream of this target 
+--omit-from srr_to_gsm 
+
+For multiple run can try:
+--cache RULE
+
 Run test snakemake:
 snakemake --snakefile=test.smk
 

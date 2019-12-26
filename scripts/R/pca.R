@@ -1,4 +1,5 @@
 suppressMessages(library(tidyverse))
+
 logDataset <- function(ge) {
   if (is_logscale(ge))
     return(ge)
@@ -37,14 +38,17 @@ if(logscale_f) {
   exp <- logDataset(exp)
 }
 
-# remove genes with 0 variance
-filtered_genes_indexes <- which(apply(t(exp), 2, var)!=0)
-exp <- exp[filtered_genes_indexes,]
+vars <- rowVars(exp)
+exp <- exp[which(vars!=0),]
 
-# take to n_genes by max2 expression.
+print("Cutting genes with largest VMR...")
+vmr <- rowVars(exp)/rowMeans(exp)
+exp <- exp[order(vmr, decreasing = T),]
 n_genes <- min(nrow(exp), n_genes)
 exp <- exp[1:n_genes, ]
 
+print("Doing PCA...")
 pca <- prcomp(t(exp), scale=T, center=T)
 
 saveRDS(pca, file = pca_out_file)
+print("Done.")
