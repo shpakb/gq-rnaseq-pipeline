@@ -125,6 +125,10 @@ def get_filtered_gse_gsm_map(gsm_df_file, organism,
         gse_counts_df = gse_counts_df[(gse_counts_df['COUNT'] >= min_gsm) & (gse_counts_df['COUNT'] <= max_gsm)]
         passing_gse = gse_counts_df['GSE'].tolist()
         gsm_df = gsm_df[gsm_df['GSE'].isin(passing_gse)]
+        # further subsampling
+        gsm_list = list(set(gsm_df['GSM'].tolist()))
+        srr_df = srr_df[srr_df["GSM"].isin(gsm_list)]
+        glob_gsm_srr_map[organism] = srr_df
 
     print("DONE.")
     return gsm_df
