@@ -328,8 +328,8 @@ rule aggregate_gsm_qc_df:
                 gpl_df_file="input/gpl.tsv", # if to be filtered by supported gpl
                 srr_df_file=str(rules.get_srr_df.output),
                 # if to be filtered by the number of spots
-                min_spots=config["min_spots"][wildcards.organism],
-                max_spots=config["max_spots"][wildcards.organism])
+                min_spots=int(config["min_spots"][wildcards.organism]),
+                max_spots=int(config["max_spots"][wildcards.organism]))
     output:
         gsm_qc_df="out/{organism}/{platform}/gsm_qc.tsv"
     run:
