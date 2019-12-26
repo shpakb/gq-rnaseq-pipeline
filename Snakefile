@@ -106,7 +106,7 @@ def get_filtered_gse_gsm_map(gsm_df_file, organism,
         srr_df = srr_df[['GSM', 'SPOTS']]
         srr_df = srr_df.groupby(['GSM']).sum().reset_index()
         print(srr_df)
-        srr_df = srr_df.astype({'GSM': 'str', 'SPOTS':'int64'})
+        srr_df = srr_df.astype({'GSM': 'str', 'SPOTS':'float'})
         srr_df = srr_df[(srr_df['SPOTS'] >= min_spots) & (srr_df['SPOTS'] <= max_spots)]
         filtered_gsm_list = srr_df['GSM'].tolist()
         gsm_df = gsm_df[gsm_df['GSM'].isin(filtered_gsm_list)]
