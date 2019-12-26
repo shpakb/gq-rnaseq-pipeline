@@ -105,7 +105,7 @@ def get_filtered_gse_gsm_map(gsm_df_file, organism,
         srr_df = glob_gsm_srr_map[organism]
         srr_df = srr_df[['GSM', 'SPOTS']]
         srr_df = srr_df.groupby(['GSM']).sum().reset_index()
-        srr_df = srr_df.astype({'GSM': 'str', 'SPOTS':'int32'})
+        srr_df = srr_df.astype({'GSM': 'str', 'SPOTS':'int'})
         srr_df = srr_df[(srr_df['SPOTS'] >= min_spots) & (srr_df['SPOTS'] <= max_spots)]
         filtered_gsm_list = srr_df['GSM'].tolist()
         gsm_df = gsm_df[gsm_df['GSM'].isin(filtered_gsm_list)]
@@ -145,7 +145,6 @@ def get_srr_files_for_gsm(wildcards):
     srr_df = glob_gsm_srr_map[wildcards.organism]
     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
     srr_list = list(set(srr_list)) # removing possible duplicates
-    print(srr_list)
     srr_files = \
         expand("out/{organism}/seq/kallisto/{srr}/abundance.tsv",
         srr=srr_list,
