@@ -127,8 +127,8 @@ def get_filtered_gse_gsm_map(gsm_df_file, organism,
         gsm_df = gsm_df[gsm_df['GSE'].isin(passing_gse)]
         print("Further sub sampling for SRR df...")
         gsm_list = list(set(gsm_df['GSM'].tolist()))
-        glob_gsm_srr_map[organism] = srr_df[srr_df["GSM"].isin(gsm_list)]
-
+        glob_gsm_srr_map[organism] = glob_gsm_srr_map[organism][glob_gsm_srr_map[organism]["GSM"].isin(gsm_list)]
+        print(glob_gsm_srr_map[organism])
     print("DONE.")
     return gsm_df
 
