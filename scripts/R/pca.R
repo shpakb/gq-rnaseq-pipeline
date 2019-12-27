@@ -30,8 +30,8 @@ cat(sprintf("Logscale: %s \n", as.character(logscale_f)))
 
 exp <- read.csv(exp_file, sep="\t")
 
-rownames(exp) <- exp$ENTREZ
-exp$ENTREZ <- NULL
+rownames(exp) <- exp$entrez
+exp$entrez <- NULL
 
 exp <- as.matrix(exp)
 
