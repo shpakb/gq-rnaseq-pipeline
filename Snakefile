@@ -551,7 +551,8 @@ rule get_pc_list_adapter:
     single list. Note: it is not a problem with large number of inputs if they passed to 'run' section.
     '''
     input:
-        lambda wildcards:
+        ancient(
+            lambda wildcards:
             expand(rules.pca.output,
                 organism=wildcards.organism,
                 max_genes=wildcards.max_genes,
@@ -559,7 +560,7 @@ rule get_pc_list_adapter:
                 tag=get_filtered_exp_mat_files(
                     wildcards,
                     int(config["pca_min_gsm"]),
-                    int(config["pca_max_gsm"])))
+                    int(config["pca_max_gsm"]))))
     output:
         "out/{organism}/seq/pca/{max_genes}_{scale}.list"
     run:
