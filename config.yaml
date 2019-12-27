@@ -52,7 +52,8 @@ chip_logmax_max: 20
 chip_linmax_max: 100000 # original:2000
 chip_logav_min: 4
 chip_logav_max: 10
-min_genes: 6000
+# todo: add other organisms
+min_exp_genes: 6000
 
 #############################PCA_PARAMS#################################################################################
 # parameters shold be in string format so that they can be passed to folders names

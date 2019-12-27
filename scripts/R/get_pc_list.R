@@ -13,7 +13,7 @@ cat(sprintf("Minimum explained veriance threshold: %s persent \n", explained_var
 cat(sprintf("Number of PCA to concatinate: %s \n", length(pca_files)))
 
 result <- list()
-
+print(pca_files)
 for (pca_file in pca_files) {
   tryCatch({
     pca <- readRDS(pca_file)
@@ -41,7 +41,6 @@ for (pca_file in pca_files) {
 
  }, error = function(e) {
     print("C'est la vie...")
-    print(pca_files)
     print(e$message)
   })
 }

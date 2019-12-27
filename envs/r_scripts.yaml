@@ -7,3 +7,5 @@ dependencies:
   - libopenblas
   - r-tidyverse
   - r-stringr
+  - r-matrixstats
+

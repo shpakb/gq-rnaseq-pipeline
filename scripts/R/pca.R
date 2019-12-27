@@ -1,4 +1,5 @@
 suppressMessages(library(tidyverse))
+suppressMessages(library(matrixStats))
 
 logDataset <- function(ge) {
   if (is_logscale(ge))
