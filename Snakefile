@@ -18,7 +18,7 @@ glob_postquant_gse_gsm_map = {}
 
 rule all:
     input:
-        #"out/mm/seq/gse_cpm_qc.tsv"
+        "out/mm/seq/gse_cpm_qc.tsv"
         #"out/mm/seq/pca/3000_log_10_0.02_PCList.rds"
         #"out/mm/seq/gsm_qc.tsv"
         # "out/mm/seq/gses/GSE100000.tsv"
