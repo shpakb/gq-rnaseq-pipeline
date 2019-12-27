@@ -535,7 +535,6 @@ def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=in
     # elif wildcards.platform=="seq":
     gse_qc_df_file = str(checkpoints.aggregate_gse_qc_df.get(**wildcards).output)
     gse_qc_df = pd.read_csv(gse_qc_df_file, sep="\t")
-    print(gse_qc_df)
     gse_qc_df = gse_qc_df[(gse_qc_df['N_GSM'] >= min_gsm) & (gse_qc_df['N_GSM'] <= max_gsm)]
     exp_mat_tags = gse_qc_df["GSE"].tolist()
         # exp_mat_files = \
