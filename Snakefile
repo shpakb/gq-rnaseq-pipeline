@@ -35,7 +35,7 @@ rule all:
                "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
                "prepared/{geneset_name}.tsv",
             organism=['mm'],
-            platform=['chip'],
+            platform=['seq'],
             max_genes="3000",
             scale=config['pca_scale'],
             max_comp="10",
