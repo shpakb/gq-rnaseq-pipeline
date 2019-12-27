@@ -503,11 +503,11 @@ rule pca:
         " Platform: seq \n"
         " Number of genes considered: {wildcards.max_genes} \n"
         " Scale: {wildcards.scale}"
-    # log: "logs/{organism}/seq/pca/{max_genes}_{scale}/{tag}.log"
+    log: "logs/{organism}/seq/pca/{max_genes}_{scale}/{tag}.log"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/pca.R {input} {output} {wildcards.max_genes} {wildcards.scale}"
-        #" > {log} 2>&1"
+        " > {log} 2>&1"
 
 
 def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
@@ -586,13 +586,13 @@ rule get_pc_list:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance % threshold: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-    #log: "logs/{organism}/seq/get_pc_list/{max_genes}_{scale}_{max_comp}_{var_threshold}.log"
+    log: "logs/{organism}/seq/get_pc_list/{max_genes}_{scale}_{max_comp}_{var_threshold}.log"
     output:
         "out/{organism}/seq/pca/{max_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
-        #" > {log} 2>&1"
+        " > {log} 2>&1"
 
 # TODO: remove first two lines in genesets inside the script. Artifact from GQ
 rule fgsea_genesets:
