@@ -23,21 +23,18 @@ for (pca_file in pca_files) {
     pev <- (pca$sdev)^2 / sum(pca$sdev^2) * 100
     # chose how many first PC take from pca.
     n_comp <- min(max_comp, ncol(pca$rotation), sum(pev > explained_var_threshold))
-    componets <-
+
+    components <-
       as.data.frame(pca$rotation)[,1:n_comp] %>%
       as.list()
 
-    componets <-
-      as.data.frame(pca$rotation) %>%
-      as.list()
+    names(components) <- paste0(tag, "_", names(components))
 
-    names(componets) <- paste0(tag, "_", names(componets))
-
-    for (n in names(componets)){
-      names(componets[[n]]) <- rownames(pca$rotation)
+    for (n in names(components)){
+      names(components[[n]]) <- rownames(pca$rotation)
     }
 
-    result <- c(result, componets)
+    result <- c(result, components)
 
  }, error = function(e) {
     print("C'est la vie...")
