@@ -105,3 +105,10 @@ PCA query:
 5) Combine several lists in to joint list and look at the ranking. Re-rank by summing the rungs.
 
   
+bsub -q research-hpc -M 8000000 -R 'select[mem>8000] rusage[mem=8000]' \
+    -o get_gsm_list.log -e get_gsm_list.err -g /shpakb \
+    -a "docker(rocker/tidyverse)" /bin/bash -c \
+    "Rscript /gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/scripts/R/pca.R  \
+    /gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/out/mm/seq/3000_log.list \
+    /gscmnt/gc2676/martyomov_lab/shpakb/gq-rnaseq-pipeline/out/{organism}/seq/pca/3000_log_10_0.02_PCList.rds \ 
+    3000 0.02 log"
