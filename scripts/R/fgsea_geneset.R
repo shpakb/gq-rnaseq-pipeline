@@ -52,7 +52,6 @@ for (pc_name in names(pc_list)){
 
 output_df <- output_df[2:nrow(output_df),]
 
-
 print("Writing results")
 
 write.table(output_df, output_file, col.names = T, row.names = F, sep = "\t", quote=F)
