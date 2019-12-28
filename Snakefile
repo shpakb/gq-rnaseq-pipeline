@@ -37,7 +37,7 @@ rule all:
             organism=['mm'],
             platform=['seq'],
             max_genes="6000",
-            scale=config['pca_scale'],
+            scale="linear",
             max_comp="10",
             var_threshold="0.02",
             geneset_name=['HALLMARK_HYPOXIA'])# 'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING']
