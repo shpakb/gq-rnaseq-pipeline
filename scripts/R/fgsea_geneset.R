@@ -35,22 +35,45 @@ output_df <-
     stringsAsFactors = FALSE
   )
 
-for (pc_name in names(pc_list)){
+# for (pc_name in names(pc_list)){
+#   tryCatch({
+#     print(pc_name)
+#     pc <- pc_list[[pc_name]]
+#     fgsea_result <- fgsea::fgsea(pathways = genesets, stats = pc, nperm=500)
+#     fgsea_result <- fgsea_result %>% select(pval, ES, NES, size)
+#     fgsea_result$LABEL <- pc_name
+#     colnames(fgsea_result) <- c("PVAL", "ES", "NES", "INTERSECTION_SIZE", "LABEL")
+#     output_df <- rbind(output_df, fgsea_result)
+#  }, error = function(e) {
+#     print("woops!")
+#     print(e$message)
+#   })
+# }
+
+print("Parralel fgsea...")
+cores=detectCores()
+cl <- makeCluster(8)
+registerDoParallel(cl)
+
+output_df <- foreach(i=1:length(pc_list), .combine=rbind, .packages=c("tidyverse", "fgsea")) %dopar% {
   tryCatch({
-    print(pc_name)
+    pc_name <- names(pc_list)[i]
     pc <- pc_list[[pc_name]]
     fgsea_result <- fgsea::fgsea(pathways = genesets, stats = pc, nperm=500)
     fgsea_result <- fgsea_result %>% select(pval, ES, NES, size)
     fgsea_result$LABEL <- pc_name
     colnames(fgsea_result) <- c("PVAL", "ES", "NES", "INTERSECTION_SIZE", "LABEL")
-    output_df <- rbind(output_df, fgsea_result)
- }, error = function(e) {
-    print("woops!")
-    print(e$message)
-  })
+
+    return(fgsea_result)
+
+    }, error = function(e) {})
 }
 
-output_df <- output_df[2:nrow(output_df),]
+#stop cluster
+stopCluster(cl)
+
+
+#output_df <- output_df[2:nrow(output_df),]
 
 print("Writing results")
 
