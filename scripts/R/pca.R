@@ -35,10 +35,6 @@ exp$entrez <- NULL
 
 exp <- as.matrix(exp)
 
-if(logscale_f) {
-  exp <- logDataset(exp)
-}
-
 vars <- rowVars(exp)
 exp <- exp[which(vars!=0),]
 
@@ -47,6 +43,10 @@ vmr <- rowVars(exp)/rowMeans(exp)
 exp <- exp[order(vmr, decreasing = T),]
 n_genes <- min(nrow(exp), n_genes)
 exp <- exp[1:n_genes, ]
+
+if(logscale_f) {
+  exp <- logDataset(exp)
+}
 
 print("Doing PCA...")
 pca <- prcomp(t(exp), scale=T, center=T)

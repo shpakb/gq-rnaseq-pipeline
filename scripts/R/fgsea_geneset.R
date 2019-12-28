@@ -21,25 +21,29 @@ geneset <- readLines(geneset_file)
 cat(sprintf("Number of PC: %i \n", length(pc_list)))
 cat(sprintf("Number of genes in geneset: %i \n", (length(geneset) - 2)))
 
-# removing artifact lines from GQ
-geneset <- geneset[3:length(geneset)]
+# Emulation of geneset list for fgsea
+genesets <- list()
+genesets[['geneset']] <- geneset
 
 output_df <-
   data.frame(
-    PC_NAME="blank",
-    GSEA_STAT=0,
-    INTERSECTION=0,
+    LABEL="blank",
+    PVAL=0,
+    ES=0,
+    NES=0,
+    INTERSECTION_SIZE=0,
     stringsAsFactors = FALSE
   )
-
 
 for (pc_name in names(pc_list)){
   tryCatch({
     print(pc_name)
     pc <- pc_list[[pc_name]]
-    gene_intersection <- na.omit(match(geneset, names(pc)))
-    gsea_stat <- fgsea::calcGseaStat(pc, gene_intersection)
-    output_df <- rbind(output_df, c(pc_name, gsea_stat, length(gene_intersection)))
+    fgsea_result <- fgsea::fgsea(pathways = genesets, stats = pc, nperm=500)
+    fgsea_result <- fgsea_result %>% select(pval, ES, NES, size)
+    fgsea_result$LABEL <- pc_name
+    colnames(fgsea_result) <- c("PVAL", "ES", "NES", "INTERSECTION_SIZE", "LABEL")
+    output_df <- rbind(output_df, fgsea_result)
  }, error = function(e) {
     print("woops!")
     print(e$message)
@@ -47,6 +51,7 @@ for (pc_name in names(pc_list)){
 }
 
 output_df <- output_df[2:nrow(output_df),]
+
 
 print("Writing results")
 

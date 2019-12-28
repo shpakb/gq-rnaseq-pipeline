@@ -577,7 +577,7 @@ rule get_pc_list:
     If results look good conditions might be relaxed.
     '''
     resources:
-        mem_ram=20
+        mem_ram=16
     input:
         rules.get_pc_list_adapter.output
     message:
@@ -615,14 +615,14 @@ rule fgsea_genesets:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp}"
-    log:
-        "logs/{organism}/seq/fgsea_genesets/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
-        "{geneset_name}.log"
+    # log:
+    #     "logs/{organism}/seq/fgsea_genesets/"
+    #     "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+    #     "{geneset_name}.log"
     conda: "envs/fgsea.yaml"
     shell:
         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output}"
-        " > {log} 2>&1"
+        #" > {log} 2>&1"
 
 rule prepare_pca_fgsea_result:
     input:

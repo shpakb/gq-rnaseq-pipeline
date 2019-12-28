@@ -34,8 +34,6 @@ for (pca_file in pca_files) {
       names(components[[n]]) <- rownames(pca$rotation)
     }
 
-    print(names(components[[n]]))
-
     result <- c(result, components)
 
  }, error = function(e) {
