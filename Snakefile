@@ -628,8 +628,7 @@ rule fgsea_genesets:
 rule prepare_pca_fgsea_result:
     input:
         gsea_results=rules.fgsea_genesets.output,
-        gse_df="out/{organism}/seq/sm_metadata/gse.tsv",
-        es_normalization_map="input/gsea_normalization.tsv"
+        gse_df="out/{organism}/seq/sm_metadata/gse.tsv"
     output:
         "out/{organism}/seq/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/"
         "prepared/{geneset_name}.tsv"
@@ -646,8 +645,7 @@ rule prepare_pca_fgsea_result:
         "{geneset_name}.log"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df}"
-        " {output} {input.es_normalization_map}"
+        "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
         " > {log} 2>&1"
 
 

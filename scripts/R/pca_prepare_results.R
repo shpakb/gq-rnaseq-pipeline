@@ -5,16 +5,12 @@ args <- commandArgs(TRUE)
 gsea_results_df_file <- args[1]
 gse_df_file <- args[2]
 annotated_output_file <- args[3]
-gsea_normalization_map_file <- args[4]
 
 cat(sprintf("GSEA results file: %s \n", gsea_results_df_file))
 cat(sprintf("GSE df file: %s \n", gse_df_file))
 cat(sprintf("Annotated output file: %s \n", annotated_output_file))
-cat(sprintf("GSEA ES normalization map file: %s \n", gsea_normalization_map_file))
 
-gsea_normalization_map <- read.csv(gsea_normalization_map_file, sep="\t")
 gsea_results_df <- read.csv(gsea_results_df_file, sep='\t', stringsAsFactors=F)
-gsea_results_df$NES <- 0
 
 print("Sorting results by NES...")
 gsea_results_df <- gsea_results_df[order(abs(gsea_results_df$NES), decreasing = T),]
