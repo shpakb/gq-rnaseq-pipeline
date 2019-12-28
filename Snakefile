@@ -36,7 +36,7 @@ rule all:
                "prepared/{geneset_name}.tsv",
             organism=['mm'],
             platform=['seq'],
-            max_genes="3000",
+            max_genes="6000",
             scale=config['pca_scale'],
             max_comp="10",
             var_threshold="0.02",
