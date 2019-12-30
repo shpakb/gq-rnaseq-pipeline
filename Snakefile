@@ -599,7 +599,7 @@ rule fgsea_genesets:
     Performs fgsea against list of PC components. Outputs ranked list of results with NES.
     '''
     resources:
-        mem_ram=32,
+        mem_ram=16,
         threads=8
     input:
         pc_list=rules.get_pc_list.output,
