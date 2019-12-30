@@ -480,7 +480,6 @@ def get_filtered_sm_qc_files(wildcards):
 
     return filtered_sm_qc_files
 
-
 #############################################INPUT_FUNCTION_QC##########################################################
 
 
