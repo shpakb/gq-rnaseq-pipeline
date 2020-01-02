@@ -364,22 +364,22 @@ def get_gsm_files_for_gse(wildcards):
         expand(rules.srr_to_gsm.output.gsm_file,
             organism=wildcards.organism, gsm=gsm_list)
 
-rule gsm_to_gse_cpm:
-    '''
-    Aggregates GSM to sorted by TPM values CPM GSE
-    '''
-    input:
-        gsm_files=ancient(get_gsm_files_for_gse),
-        gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
-    output:
-        gse=protected("out/{organism}/seq/gses_cpm/{gse}.tsv")
-    log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
-    message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
-    shadow: "shallow"
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "Rscript scripts/R/gsm_to_gse.R {input.gene_mapping} {output.gse} {input.gsm_files}"
-        " > {log} 2>&1"
+# rule gsm_to_gse_cpm:
+#     '''
+#     Aggregates GSM to sorted by TPM values CPM GSE
+#     '''
+#     input:
+#         gsm_files=ancient(get_gsm_files_for_gse),
+#         gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
+#     output:
+#         gse=protected("out/{organism}/seq/gses_cpm/{gse}.tsv")
+#     log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
+#     message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
+#     shadow: "shallow"
+#     conda: "envs/r_scripts.yaml"
+#     shell:
+#         "Rscript scripts/R/gsm_to_gse.R {input.gene_mapping} {output.gse} {input.gsm_files}"
+#         " > {log} 2>&1"
 
 rule gsm_to_gse_counts:
     '''
