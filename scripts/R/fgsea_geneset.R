@@ -10,10 +10,12 @@ args <- commandArgs(TRUE)
 pc_list_file <- args[1]
 geneset_file <- args[2]
 output_file <- args[3]
+gsea_param <- as.double(args[4])
 
 cat(sprintf("PC list file: %s \n", pc_list_file))
 cat(sprintf("Geneset file file: %s \n", geneset_file))
 cat(sprintf("Output file: %s \n", output_file))
+cat(sprintf("GSEA weight parameter: %g \n", gsea_param))
 
 pc_list <- readRDS(pc_list_file)
 geneset <- readLines(geneset_file)
@@ -59,7 +61,7 @@ output_df <- foreach(i=1:length(pc_list), .combine=rbind, .packages=c("tidyverse
   tryCatch({
     pc_name <- names(pc_list)[i]
     pc <- pc_list[[pc_name]]
-    fgsea_result <- fgsea::fgsea(pathways = genesets, stats = pc, nperm=500, gseaParam = 1)
+    fgsea_result <- fgsea::fgsea(pathways = genesets, stats = pc, nperm=500, gseaParam = gsea_param)
     fgsea_result <- fgsea_result %>% select(pval, ES, NES, size)
     fgsea_result$LABEL <- pc_name
     colnames(fgsea_result) <- c("PVAL", "ES", "NES", "INTERSECTION_SIZE", "LABEL")

@@ -32,34 +32,35 @@ rule all:
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
         expand("out/{organism}/{platform}/pca_fgsea/"
-               "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+               "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
                "prepared/{geneset_name}.tsv",
-            organism=['mm'],
-            platform=['seq'],
+            organism='mm',
+            platform='seq',
             max_genes="6000",
             scale="linear",
             max_comp="10",
             var_threshold="0.02",
-            geneset_name=["GSE120744_TREM_SIGNATURE", 'HALLMARK_HYPOXIA',  'HALLMARK_PANCREAS_BETA_CELLS',
-                          'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
-                          'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
-                          'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
-                          'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
-                          'HALLMARK_MYC_TARGETS_V2', 'HALLMARK_TNFA_SIGNALING_VIA_NFKB', 'HALLMARK_KRAS_SIGNALING_DN',
-                          'HALLMARK_HEDGEHOG_SIGNALING', 'HALLMARK_APICAL_SURFACE', 'HALLMARK_MYC_TARGETS_V1',
-                          'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_CHOLESTEROL_HOMEOSTASIS',
-                          'HALLMARK_ANDROGEN_RESPONSE', 'HALLMARK_E2F_TARGETS', 'HALLMARK_GLYCOLYSIS',
-                          'HALLMARK_DNA_REPAIR', 'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION',
-                          'HALLMARK_IL6_JAK_STAT3_SIGNALING', 'HALLMARK_OXIDATIVE_PHOSPHORYLATION',
-                          'HALLMARK_UNFOLDED_PROTEIN_RESPONSE', 'HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY',
-                          'HALLMARK_INFLAMMATORY_RESPONSE', 'HALLMARK_UV_RESPONSE_UP',
-                          'HALLMARK_WNT_BETA_CATENIN_SIGNALING', 'HALLMARK_INTERFERON_ALPHA_RESPONSE',
-                          'HALLMARK_G2M_CHECKPOINT', 'HALLMARK_IL2_STAT5_SIGNALING', 'HALLMARK_APOPTOSIS',
-                          'HALLMARK_INTERFERON_GAMMA_RESPONSE', 'HALLMARK_ESTROGEN_RESPONSE_LATE',
-                          'HALLMARK_COAGULATION', 'HALLMARK_XENOBIOTIC_METABOLISM', 'HALLMARK_COMPLEMENT',
-                          'HALLMARK_ADIPOGENESIS', 'HALLMARK_TGF_BETA_SIGNALING', 'HALLMARK_MITOTIC_SPINDLE',
-                          'HALLMARK_MTORC1_SIGNALING', 'HALLMARK_APICAL_JUNCTION', 'HALLMARK_KRAS_SIGNALING_UP',
-                          'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM'])
+            gsea_param=["1", "0.1", "0.5"],
+            geneset_name=["GSE120744_TREM_SIGNATURE", 'HALLMARK_HYPOXIA']) #,  'HALLMARK_PANCREAS_BETA_CELLS',
+            #               'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
+            #               'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
+            #               'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
+            #               'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
+            #               'HALLMARK_MYC_TARGETS_V2', 'HALLMARK_TNFA_SIGNALING_VIA_NFKB', 'HALLMARK_KRAS_SIGNALING_DN',
+            #               'HALLMARK_HEDGEHOG_SIGNALING', 'HALLMARK_APICAL_SURFACE', 'HALLMARK_MYC_TARGETS_V1',
+            #               'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_CHOLESTEROL_HOMEOSTASIS',
+            #               'HALLMARK_ANDROGEN_RESPONSE', 'HALLMARK_E2F_TARGETS', 'HALLMARK_GLYCOLYSIS',
+            #               'HALLMARK_DNA_REPAIR', 'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION',
+            #               'HALLMARK_IL6_JAK_STAT3_SIGNALING', 'HALLMARK_OXIDATIVE_PHOSPHORYLATION',
+            #               'HALLMARK_UNFOLDED_PROTEIN_RESPONSE', 'HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY',
+            #               'HALLMARK_INFLAMMATORY_RESPONSE', 'HALLMARK_UV_RESPONSE_UP',
+            #               'HALLMARK_WNT_BETA_CATENIN_SIGNALING', 'HALLMARK_INTERFERON_ALPHA_RESPONSE',
+            #               'HALLMARK_G2M_CHECKPOINT', 'HALLMARK_IL2_STAT5_SIGNALING', 'HALLMARK_APOPTOSIS',
+            #               'HALLMARK_INTERFERON_GAMMA_RESPONSE', 'HALLMARK_ESTROGEN_RESPONSE_LATE',
+            #               'HALLMARK_COAGULATION', 'HALLMARK_XENOBIOTIC_METABOLISM', 'HALLMARK_COMPLEMENT',
+            #               'HALLMARK_ADIPOGENESIS', 'HALLMARK_TGF_BETA_SIGNALING', 'HALLMARK_MITOTIC_SPINDLE',
+            #               'HALLMARK_MTORC1_SIGNALING', 'HALLMARK_APICAL_JUNCTION', 'HALLMARK_KRAS_SIGNALING_UP',
+            #               'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM'])
 
 #############################################FUNCTIONS##################################################################
 
@@ -606,7 +607,7 @@ rule fgsea_genesets:
         geneset="input/{organism}/genesets/{geneset_name}",
     output:
         "out/{organism}/seq/pca_fgsea/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "raw/{geneset_name}.tsv"
     message:
         "Performing GSEA {wildcards.organism} seq \n"
@@ -614,14 +615,15 @@ rule fgsea_genesets:
         " Number of genes considered: {wildcards.max_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
-        " Max PC components for 1 dataset: {wildcards.max_comp}"
+        " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+        " FGSEA weight parameter: {wildcards.fgsea_param}"
     log:
         "logs/{organism}/seq/fgsea_genesets/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "{geneset_name}.log"
     conda: "envs/fgsea.yaml"
     shell:
-        "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output}"
+        "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output} {wildcards.gsea_param}"
         " > {log} 2>&1"
 
 rule prepare_pca_fgsea_result:
@@ -629,7 +631,7 @@ rule prepare_pca_fgsea_result:
         gsea_results=rules.fgsea_genesets.output,
         gse_df="out/{organism}/seq/sm_metadata/gse.tsv"
     output:
-        "out/{organism}/seq/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "out/{organism}/seq/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "prepared/{geneset_name}.tsv"
     message:
         "Preparing results for PCA query. {wildcards.organism} seq \n"
@@ -637,10 +639,11 @@ rule prepare_pca_fgsea_result:
         " Number of genes considered: {wildcards.max_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
-        " Max PC components for 1 dataset: {wildcards.max_comp}"
+        " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+        " FGSEA weight parameter: {wildcards.fgsea_param}"
     log:
         "logs/{organism}/seq/prepare_pca_fgsea_result/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "{geneset_name}.log"
     conda: "envs/r_scripts.yaml"
     shell:
