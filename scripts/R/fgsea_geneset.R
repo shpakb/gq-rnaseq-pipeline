@@ -59,7 +59,7 @@ output_df <- foreach(i=1:length(pc_list), .combine=rbind, .packages=c("tidyverse
   tryCatch({
     pc_name <- names(pc_list)[i]
     pc <- pc_list[[pc_name]]
-    fgsea_result <- fgsea::fgsea(pathways = genesets, stats = pc, nperm=500, gseaParam = 0)
+    fgsea_result <- fgsea::fgsea(pathways = genesets, stats = pc, nperm=500, gseaParam = 1)
     fgsea_result <- fgsea_result %>% select(pval, ES, NES, size)
     fgsea_result$LABEL <- pc_name
     colnames(fgsea_result) <- c("PVAL", "ES", "NES", "INTERSECTION_SIZE", "LABEL")

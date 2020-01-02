@@ -18,7 +18,7 @@ glob_postquant_gse_gsm_map = {}
 
 rule all:
     input:
-        #"out/mm/seq/gse_cpm_qc.tsv"
+        # "out/mm/seq/gse_cpm_qc.tsv"
         # "out/mm/seq/pca/3000_log_10_0.02_PCList.rds"
         #"out/mm/seq/gsm_qc.tsv"
         # "out/mm/seq/gses/GSE100000.tsv"
@@ -40,26 +40,26 @@ rule all:
             scale="linear",
             max_comp="10",
             var_threshold="0.02",
-            geneset_name=["GSE120744_TREM_SIGNATURE"]) #['HALLMARK_HYPOXIA'])# 'HALLMARK_PANCREAS_BETA_CELLS', 'HALLMARK_PI3K_AKT_MTOR_SIGNALING']
-        #                   #'HALLMARK_SPERMATOGENESIS', 'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
-        #                   # 'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
-        #                   # 'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
-        #                   # 'HALLMARK_MYC_TARGETS_V2', 'HALLMARK_TNFA_SIGNALING_VIA_NFKB', 'HALLMARK_KRAS_SIGNALING_DN',
-        #                   # 'HALLMARK_HEDGEHOG_SIGNALING', 'HALLMARK_APICAL_SURFACE', 'HALLMARK_MYC_TARGETS_V1',
-        #                   # 'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_CHOLESTEROL_HOMEOSTASIS',
-        #                   # 'HALLMARK_ANDROGEN_RESPONSE', 'HALLMARK_E2F_TARGETS', 'HALLMARK_GLYCOLYSIS',
-        #                   # 'HALLMARK_DNA_REPAIR', 'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION',
-        #                   # 'HALLMARK_IL6_JAK_STAT3_SIGNALING', 'HALLMARK_OXIDATIVE_PHOSPHORYLATION',
-        #                   # 'HALLMARK_UNFOLDED_PROTEIN_RESPONSE', 'HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY',
-        #                   # 'HALLMARK_INFLAMMATORY_RESPONSE', 'HALLMARK_UV_RESPONSE_UP',
-        #                   # 'HALLMARK_WNT_BETA_CATENIN_SIGNALING', 'HALLMARK_INTERFERON_ALPHA_RESPONSE',
-        #                   # 'HALLMARK_G2M_CHECKPOINT', 'HALLMARK_IL2_STAT5_SIGNALING', 'HALLMARK_APOPTOSIS',
-        #                   # 'HALLMARK_INTERFERON_GAMMA_RESPONSE', 'HALLMARK_ESTROGEN_RESPONSE_LATE',
-        #                   # 'HALLMARK_COAGULATION', 'HALLMARK_XENOBIOTIC_METABOLISM', 'HALLMARK_COMPLEMENT',
-        #                   # 'HALLMARK_ADIPOGENESIS', 'HALLMARK_TGF_BETA_SIGNALING', 'HALLMARK_MITOTIC_SPINDLE',
-        #                   # 'HALLMARK_MTORC1_SIGNALING', 'HALLMARK_APICAL_JUNCTION', 'HALLMARK_KRAS_SIGNALING_UP',
-        #                   # 'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM']
-        # )
+            geneset_name=["GSE120744_TREM_SIGNATURE", 'HALLMARK_HYPOXIA',  'HALLMARK_PANCREAS_BETA_CELLS',
+                          'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
+                          'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
+                          'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
+                          'HALLMARK_UV_RESPONSE_DN', 'HALLMARK_ANGIOGENESIS', 'HALLMARK_NOTCH_SIGNALING',
+                          'HALLMARK_MYC_TARGETS_V2', 'HALLMARK_TNFA_SIGNALING_VIA_NFKB', 'HALLMARK_KRAS_SIGNALING_DN',
+                          'HALLMARK_HEDGEHOG_SIGNALING', 'HALLMARK_APICAL_SURFACE', 'HALLMARK_MYC_TARGETS_V1',
+                          'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_CHOLESTEROL_HOMEOSTASIS',
+                          'HALLMARK_ANDROGEN_RESPONSE', 'HALLMARK_E2F_TARGETS', 'HALLMARK_GLYCOLYSIS',
+                          'HALLMARK_DNA_REPAIR', 'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION',
+                          'HALLMARK_IL6_JAK_STAT3_SIGNALING', 'HALLMARK_OXIDATIVE_PHOSPHORYLATION',
+                          'HALLMARK_UNFOLDED_PROTEIN_RESPONSE', 'HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY',
+                          'HALLMARK_INFLAMMATORY_RESPONSE', 'HALLMARK_UV_RESPONSE_UP',
+                          'HALLMARK_WNT_BETA_CATENIN_SIGNALING', 'HALLMARK_INTERFERON_ALPHA_RESPONSE',
+                          'HALLMARK_G2M_CHECKPOINT', 'HALLMARK_IL2_STAT5_SIGNALING', 'HALLMARK_APOPTOSIS',
+                          'HALLMARK_INTERFERON_GAMMA_RESPONSE', 'HALLMARK_ESTROGEN_RESPONSE_LATE',
+                          'HALLMARK_COAGULATION', 'HALLMARK_XENOBIOTIC_METABOLISM', 'HALLMARK_COMPLEMENT',
+                          'HALLMARK_ADIPOGENESIS', 'HALLMARK_TGF_BETA_SIGNALING', 'HALLMARK_MITOTIC_SPINDLE',
+                          'HALLMARK_MTORC1_SIGNALING', 'HALLMARK_APICAL_JUNCTION', 'HALLMARK_KRAS_SIGNALING_UP',
+                          'HALLMARK_PEROXISOME', 'HALLMARK_ESTROGEN_RESPONSE_EARLY', 'HALLMARK_HEME_METABOLISM'])
 
 #############################################FUNCTIONS##################################################################
 
@@ -364,22 +364,22 @@ def get_gsm_files_for_gse(wildcards):
         expand(rules.srr_to_gsm.output.gsm_file,
             organism=wildcards.organism, gsm=gsm_list)
 
-# rule gsm_to_gse_cpm:
-#     '''
-#     Aggregates GSM to sorted by TPM values CPM GSE
-#     '''
-#     input:
-#         gsm_files=ancient(get_gsm_files_for_gse),
-#         gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
-#     output:
-#         gse=protected("out/{organism}/seq/gses_cpm/{gse}.tsv")
-#     log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
-#     message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
-#     shadow: "shallow"
-#     conda: "envs/r_scripts.yaml"
-#     shell:
-#         "Rscript scripts/R/gsm_to_gse.R {input.gene_mapping} {output.gse} {input.gsm_files}"
-#         " > {log} 2>&1"
+rule gsm_to_gse_cpm:
+    '''
+    Aggregates GSM to sorted by TPM values CPM GSE
+    '''
+    input:
+        gsm_files=ancient(get_gsm_files_for_gse),
+        gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
+    output:
+        gse=protected("out/{organism}/seq/gses_cpm/{gse}.tsv")
+    log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
+    message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
+    shadow: "shallow"
+    conda: "envs/r_scripts.yaml"
+    shell:
+        "Rscript scripts/R/gsm_to_gse.R {input.gene_mapping} {output.gse} {input.gsm_files}"
+        " > {log} 2>&1"
 
 rule gsm_to_gse_counts:
     '''
