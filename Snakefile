@@ -616,7 +616,7 @@ rule fgsea_genesets:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-        " FGSEA weight parameter: {wildcards.fgsea_param}"
+        " FGSEA weight parameter: {wildcards.gsea_param}"
     log:
         "logs/{organism}/seq/fgsea_genesets/"
         "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
@@ -640,7 +640,7 @@ rule prepare_pca_fgsea_result:
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-        " FGSEA weight parameter: {wildcards.fgsea_param}"
+        " FGSEA weight parameter: {wildcards.gsea_param}"
     log:
         "logs/{organism}/seq/prepare_pca_fgsea_result/"
         "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
