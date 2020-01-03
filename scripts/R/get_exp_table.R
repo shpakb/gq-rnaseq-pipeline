@@ -194,7 +194,8 @@ tryCatch(
   exp <- exp[order(exp$max2, decreasing = T), ]
   exp$max2 <- NULL
 
-  exp$ENTREZ <- rownames(exp)
+  # necessary to keep it lowerkeys for downstream
+  exp$entrez <- rownames(exp)
 
   write.table(
     exp,
