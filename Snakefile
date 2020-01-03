@@ -467,8 +467,8 @@ rule extract_exp_mat:
 def get_filtered_sm_qc_files(wildcards):
     print("Filtering SM files...")
     gse_df_file = checkpoints.extract_sm_metadata.get(**wildcards).output.gse_df
-    print(gse_df_file)
     gse_df = pd.read_csv(gse_df_file, sep="\t")
+    print(gse_df)
     gse_df = gse_df[(gse_df['NUMBER_GSM']>=config['min_gsm']) & (gse_df['NUMBER_GSM']<=config['max_gsm'])]
     print("Filtering SM by list of supported GPL...")
     gpl_dir = f"input/{wildcards.organism}/chip/platform_annotation"
