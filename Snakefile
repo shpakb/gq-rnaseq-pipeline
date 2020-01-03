@@ -18,6 +18,7 @@ glob_postquant_gse_gsm_map = {}
 
 rule all:
     input:
+        "out/mm/chip/exp_mat/GSE8150.tsv"
         # "out/mm/seq/gse_cpm_qc.tsv"
         # "out/mm/seq/pca/3000_log_10_0.02_PCList.rds"
         #"out/mm/seq/gsm_qc.tsv"
@@ -31,17 +32,17 @@ rule all:
         #         platform=['chip'],
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
-        expand("out/{organism}/{platform}/pca_fgsea/"
-               "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-               "prepared/{geneset_name}.tsv",
-            organism='mm',
-            platform='seq',
-            max_genes="6000",
-            scale="linear",
-            max_comp="10",
-            var_threshold="0.02",
-            gsea_param=["1", "0.1", "0.5", "0"],
-            geneset_name=["GSE120744_TREM_SIGNATURE", 'HALLMARK_HYPOXIA']) #,  'HALLMARK_PANCREAS_BETA_CELLS',
+        # expand("out/{organism}/{platform}/pca_fgsea/"
+        #        "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+        #        "prepared/{geneset_name}.tsv",
+        #     organism='mm',
+        #     platform='seq',
+        #     max_genes="6000",
+        #     scale="linear",
+        #     max_comp="10",
+        #     var_threshold="0.02",
+        #     gsea_param=["1", "0.1", "0.5", "0"],
+        #     geneset_name=["GSE120744_TREM_SIGNATURE", 'HALLMARK_HYPOXIA']) #,  'HALLMARK_PANCREAS_BETA_CELLS',
             #               'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
             #               'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
             #               'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
@@ -453,12 +454,12 @@ rule extract_exp_mat:
     output:
         exp_table=protected("out/{organism}/chip/exp_mat/{tag}.tsv"),
         qc_report=protected("out/{organism}/chip/exp_mat/{tag}_qc.tsv")
-    log: "logs/{organism}/chip/extract_exp_mat/{tag}.log"
+    #log: "logs/{organism}/chip/extract_exp_mat/{tag}.log"
     message: "Extracting expression table from {wildcards.tag}_series_matrix.txt.gz ({wildcards.organism})..."
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/get_exp_table.R {input.sm} {input.gpl_dir} {output.exp_table} {output.qc_report}"
-        " > {log} 2>&1"
+        #" > {log} 2>&1"
 
 def get_filtered_sm_qc_files(wildcards):
     gse_df_file = checkpoints.extract_sm_metadata.get(**wildcards).output.gse_df

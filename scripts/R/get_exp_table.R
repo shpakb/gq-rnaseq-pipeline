@@ -159,6 +159,8 @@ tryCatch(
   exp <- linearizeDataset(expressionTable)
   explog <- logDataset(expressionTable)
 
+  print(head(exp)) ###############################################################################################
+
   qc_df$LOGAV <- mean(explog) %>% round(1)
   qc_df$LOGMAX <- max(explog) %>% round(1)
   qc_df$LINMAX <- max(exp) %>% round()
@@ -175,6 +177,8 @@ tryCatch(
 
   exp <- exp$datETcollapsed
 
+  print(head(exp)) ###############################################################################################
+
   exp <-
     exp[!(row.names(exp) %in% c("NONE", "NA", "none", "NULL")), ]
 
@@ -182,8 +186,7 @@ tryCatch(
 
   qc_df$N_GENES <- nrow(exp)
 
-  rownames(exp) <- exp$Entrez_ID
-  exp$Entrez_ID <- NULL
+  print(head(exp)) ###############################################################################################
 
   exp <- exp %>% round(3)
 
