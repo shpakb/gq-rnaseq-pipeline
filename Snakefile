@@ -466,7 +466,7 @@ rule extract_exp_mat:
 
 def get_filtered_sm_qc_files(wildcards):
     print("Filtering SM files...")
-    gse_df_file = checkpoints.extract_sm_metadata.get(**wildcards).output.gse_df
+    gse_df_file = checkpoints.extract_sm_metadata.get(platform="chip", organism=wildcards.organism).output.gse_df
     print(gse_df_file)
     gse_df = pd.read_csv(gse_df_file, sep="\t")
     print(gse_df)
