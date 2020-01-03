@@ -18,7 +18,7 @@ glob_postquant_gse_gsm_map = {}
 
 rule all:
     input:
-        "out/mm/chip/exp_mat/GSE8150.tsv"
+        "out/mm/chip/exp_mat_qc.tsv"
         # "out/mm/seq/gse_cpm_qc.tsv"
         # "out/mm/seq/pca/3000_log_10_0.02_PCList.rds"
         #"out/mm/seq/gsm_qc.tsv"
@@ -454,23 +454,26 @@ rule extract_exp_mat:
     output:
         exp_table=protected("out/{organism}/chip/exp_mat/{tag}.tsv"),
         qc_report=protected("out/{organism}/chip/exp_mat/{tag}_qc.tsv")
-    #log: "logs/{organism}/chip/extract_exp_mat/{tag}.log"
+    log: "logs/{organism}/chip/extract_exp_mat/{tag}.log"
     message: "Extracting expression table from {wildcards.tag}_series_matrix.txt.gz ({wildcards.organism})..."
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/get_exp_table.R {input.sm} {input.gpl_dir} {output.exp_table} {output.qc_report}"
-        #" > {log} 2>&1"
+        " > {log} 2>&1"
+
+
 
 def get_filtered_sm_qc_files(wildcards):
+    print("Filtering SM files...")
     gse_df_file = checkpoints.extract_sm_metadata.get(**wildcards).output.gse_df
     gse_df = pd.read_csv(gse_df_file, sep="\t")
     gse_df = gse_df[(gse_df['NUMBER_GSM']>=config['min_gsm']) & (gse_df['NUMBER_GSM']<=config['max_gsm'])]
-    # getting list of supported GPL
+    print("Filtering SM by list of supported GPL...")
     gpl_dir = f"input/{wildcards.organism}/chip/platform_annotation"
     gpl_list = [f for f in listdir(gpl_dir) if isfile(join(gpl_dir, f))]
     gpl_list = [re.search('(.+?).3col.gz', gpl).group(1) for gpl in gpl_list]
     gse_df = gse_df[gse_df["GPL"].isin(gpl_list)]
-
+    print("Removing super series...")
     gse_df = gse_df[gse_df["SUPER_SERIES_OF"].isna()]
 
     filtered_sm_tags=gse_df["GSE"].to_list()
@@ -479,8 +482,19 @@ def get_filtered_sm_qc_files(wildcards):
         expand('out/{organism}/chip/exp_mat/{tag}_qc.tsv',
         organism=wildcards.organism,
         tag=filtered_sm_tags)
-
+    print("Done.")
     return filtered_sm_qc_files
+
+rule get_exp_mat_qc_df:
+    input: get_filtered_sm_qc_files
+    output: "out/{organism}/{platform}/exp_mat_qc.tsv"
+    run:
+        print(f"Aggregating QC df for SM {wildcards.organism}...")
+        qc_df_list=[pd.read_csv(qc_file,sep='\t') for qc_file in input]
+        qc_df=pd.concat(qc_df_list)
+        qc_df.to_csv(str(output),sep='\t',index=False)
+        print("Done.")
+
 
 #############################################INPUT_FUNCTION_QC##########################################################
 
