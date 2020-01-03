@@ -149,13 +149,13 @@ rule sm_download:
         writing_res=1,
         priority=5
     input:
-        "input/{organism}/seq/gds_search_result.txt"
+        "input/{organism}/{platform}/gds_search_result.txt"
     output:
-        "flags/{organism}/seq/sm_download.flag"
+        "flags/{organism}/{platform}/sm_download.flag"
     params:
-        sm_download_dir="out/{organism}/seq/series_matrices"
-    message: "Downloading series matrices for {wildcards.organism} seq..."
-    log: "logs/{organism}/seq/sm_download.log"
+        sm_download_dir="out/{organism}/{platform}/series_matrices"
+    message: "Downloading series matrices for {wildcards.organism} {wildcards.platform}..."
+    log: "logs/{organism}/{platform}/sm_download.log"
     shell:
         "scripts/bash/download_sm.sh {input} {params.sm_download_dir} "
         " > {log} 2>&1 &&"
@@ -165,12 +165,12 @@ checkpoint extract_sm_metadata:
     input:
         rules.sm_download.output
     output:
-        gsm_df="out/{organism}/seq/sm_metadata/gsm.tsv",
-        gse_df="out/{organism}/seq/sm_metadata/gse.tsv"
+        gsm_df="out/{organism}/{platform}/sm_metadata/gsm.tsv",
+        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
     params:
         sm_download_dir=rules.sm_download.params.sm_download_dir
-    message: "Aggregating metadata from series matrices {wildcards.organism} seq ..."
-    log: "logs/{organism}/seq/sm_metadata.log"
+    message: "Aggregating metadata from series matrices {wildcards.organism} {wildcards.platform} ..."
+    log: "logs/{organism}/{platform}/sm_metadata.log"
     shell:
         "python scripts/python/parse_sm_metadata.py {params.sm_download_dir} {output.gse_df} {output.gsm_df}"
         " > {log} 2>&1"
@@ -374,7 +374,7 @@ def get_gsm_files_for_gse(wildcards):
 #         gsm_files=ancient(get_gsm_files_for_gse),
 #         gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
 #     output:
-#         gse=protected("out/{organism}/seq/gses_cpm/{gse}.tsv")
+#         gse=protected("out/{organism}/seq/exp_mat/{gse}.tsv")
 #     log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
 #     message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
 #     shadow: "shallow"
@@ -418,7 +418,7 @@ checkpoint aggregate_gse_qc_df:
         "out/{organism}/seq/gse_cpm_qc.tsv"
     run:
         print(f"Aggregating GSE qc df for {wildcards.organism}...")
-        gses_dir=f"out/{wildcards.organism}/seq/gses_cpm"
+        gses_dir=f"out/{wildcards.organism}/seq/exp_mat"
         gse_files = [gses_dir + "/" + f for f in listdir(gses_dir)]
         n_gsm_list=\
             [
@@ -512,16 +512,17 @@ rule pca:
     resources:
         time = 20
     input:
-        "out/{organism}/seq/gses_cpm/{tag}.tsv"
+        # TODO move exp_mat to exp_mat
+        "out/{organism}/{platform}/exp_mat/{tag}.tsv"
     output:
-        protected("out/{organism}/seq/pca/{max_genes}_{scale}/{tag}.rds"),
+        protected("out/{organism}/{platform}/pca/{max_genes}_{scale}/{tag}.rds"),
     message:
         "Performing PCA on {wildcards.tag} \n"
         " Organism: {wildcards.organism} \n"
-        " Platform: seq \n"
+        " Platform: {wildcards.platform} \n"
         " Number of genes considered: {wildcards.max_genes} \n"
         " Scale: {wildcards.scale}"
-    log: "logs/{organism}/seq/pca/{max_genes}_{scale}/{tag}.log"
+    log: "logs/{organism}/{platform}/pca/{max_genes}_{scale}/{tag}.log"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/pca.R {input} {output} {wildcards.max_genes} {wildcards.scale}"
@@ -599,14 +600,14 @@ rule get_pc_list:
     input:
         rules.get_pc_list_adapter.output
     message:
-        "Getting PC list {wildcards.organism} seq \n"
+        "Getting PC list {wildcards.organism} {wildcards.platform} \n"
         " Number of genes considered: {wildcards.max_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance % threshold: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-    log: "logs/{organism}/seq/get_pc_list/{max_genes}_{scale}_{max_comp}_{var_threshold}.log"
+    log: "logs/{organism}/{platform}/get_pc_list/{max_genes}_{scale}_{max_comp}_{var_threshold}.log"
     output:
-        "out/{organism}/seq/pca/{max_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
+        "out/{organism}/{platform}/pca/{max_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
@@ -624,7 +625,7 @@ rule fgsea_genesets:
         pc_list=rules.get_pc_list.output,
         geneset="input/{organism}/genesets/{geneset_name}",
     output:
-        "out/{organism}/seq/pca_fgsea/"
+        "out/{organism}/{platfrom}/pca_fgsea/"
         "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "raw/{geneset_name}.tsv"
     message:
@@ -636,7 +637,7 @@ rule fgsea_genesets:
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
         " FGSEA weight parameter: {wildcards.gsea_param}"
     log:
-        "logs/{organism}/seq/fgsea_genesets/"
+        "logs/{organism}/{platfrom}/fgsea_genesets/"
         "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "{geneset_name}.log"
     conda: "envs/fgsea.yaml"
@@ -647,9 +648,9 @@ rule fgsea_genesets:
 rule prepare_pca_fgsea_result:
     input:
         gsea_results=rules.fgsea_genesets.output,
-        gse_df="out/{organism}/seq/sm_metadata/gse.tsv"
+        gse_df="out/{organism}/{platfrom}/sm_metadata/gse.tsv"
     output:
-        "out/{organism}/seq/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+        "out/{organism}/{platfrom}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "prepared/{geneset_name}.tsv"
     message:
         "Preparing results for PCA query. {wildcards.organism} seq \n"
@@ -660,7 +661,7 @@ rule prepare_pca_fgsea_result:
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
         " FGSEA weight parameter: {wildcards.gsea_param}"
     log:
-        "logs/{organism}/seq/prepare_pca_fgsea_result/"
+        "logs/{organism}/{platfrom}/prepare_pca_fgsea_result/"
         "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "{geneset_name}.log"
     conda: "envs/r_scripts.yaml"
