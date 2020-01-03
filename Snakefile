@@ -449,8 +449,9 @@ rule extract_exp_mat:
     resources:
         time=40
     input:
-        sm="out/{organism}/chip/series_matrices/{tag}_series_matrix.txt.gz",
         gpl_dir="input/{organism}/chip/platform_annotation"
+    params:
+        sm="out/{organism}/chip/series_matrices/{tag}_series_matrix.txt.gz"
     output:
         exp_table=protected("out/{organism}/chip/exp_mat/{tag}.tsv"),
         qc_report=protected("out/{organism}/chip/exp_mat/{tag}_qc.tsv")
@@ -458,7 +459,7 @@ rule extract_exp_mat:
     message: "Extracting expression table from {wildcards.tag}_series_matrix.txt.gz ({wildcards.organism})..."
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/get_exp_table.R {input.sm} {input.gpl_dir} {output.exp_table} {output.qc_report}"
+        "Rscript scripts/R/get_exp_table.R {params.sm} {input.gpl_dir} {output.exp_table} {output.qc_report}"
         " > {log} 2>&1"
 
 
