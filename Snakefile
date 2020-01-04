@@ -14,11 +14,11 @@ glob_gsm_srr_map = {}
 glob_gse_gsm_map = {}
 glob_postquant_gse_gsm_map = {}
 
-# TODO: chip matrix extraction are wrong. Matrices different from phantasus. Genes are different.
-
 rule all:
     input:
-        "out/mm/chip/exp_mat_qc.tsv"
+        # "out/mm/chip/exp_mat_qc.tsv"
+        # "out/mm/chip/exp_mat/GSE8150.tsv"
+        #"out/mm/chip/pca/6000_linear/GSE8150.rds"
         # "out/mm/seq/gse_cpm_qc.tsv"
         # "out/mm/seq/pca/3000_log_10_0.02_PCList.rds"
         #"out/mm/seq/gsm_qc.tsv"
@@ -32,17 +32,17 @@ rule all:
         #         platform=['chip'],
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
-        # expand("out/{organism}/{platform}/pca_fgsea/"
-        #        "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-        #        "prepared/{geneset_name}.tsv",
-        #     organism='mm',
-        #     platform='seq',
-        #     max_genes="6000",
-        #     scale="linear",
-        #     max_comp="10",
-        #     var_threshold="0.02",
-        #     gsea_param=["1", "0.1", "0.5", "0"],
-        #     geneset_name=["GSE120744_TREM_SIGNATURE", 'HALLMARK_HYPOXIA']) #,  'HALLMARK_PANCREAS_BETA_CELLS',
+        expand("out/{organism}/{platform}/pca_fgsea/"
+               "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+               "prepared/{geneset_name}.tsv",
+            organism='mm',
+            platform='chip',
+            n_genes="6000",
+            scale="linear",
+            max_comp="10",
+            var_threshold="0.02",
+            gsea_param="0",
+            geneset_name=['HALLMARK_HYPOXIA']) #, "GSE120744_TREM_SIGNATURE" 'HALLMARK_PANCREAS_BETA_CELLS',
             #               'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
             #               'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
             #               'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
@@ -366,22 +366,22 @@ def get_gsm_files_for_gse(wildcards):
         expand(rules.srr_to_gsm.output.gsm_file,
             organism=wildcards.organism, gsm=gsm_list)
 
-# rule gsm_to_gse_cpm:
-#     '''
-#     Aggregates GSM to sorted by TPM values CPM GSE
-#     '''
-#     input:
-#         gsm_files=ancient(get_gsm_files_for_gse),
-#         gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
-#     output:
-#         gse=protected("out/{organism}/seq/exp_mat/{gse}.tsv")
-#     log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
-#     message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
-#     shadow: "shallow"
-#     conda: "envs/r_scripts.yaml"
-#     shell:
-#         "Rscript scripts/R/gsm_to_gse.R {input.gene_mapping} {output.gse} {input.gsm_files}"
-#         " > {log} 2>&1"
+rule gsm_to_gse_cpm:
+    '''
+    Aggregates GSM to sorted by TPM values, CPM GSE
+    '''
+    input:
+        gsm_files=ancient(get_gsm_files_for_gse),
+        gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
+    output:
+        gse=protected("out/{organism}/seq/exp_mat/{gse}.tsv")
+    log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
+    message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
+    shadow: "shallow"
+    conda: "envs/r_scripts.yaml"
+    shell:
+        "Rscript scripts/R/gsm_to_gse.R {input.gene_mapping} {output.gse} {input.gsm_files}"
+        " > {log} 2>&1"
 
 rule gsm_to_gse_counts:
     '''
@@ -463,7 +463,6 @@ rule extract_exp_mat:
         " > {log} 2>&1"
 
 
-
 def get_filtered_sm_qc_files(wildcards):
     print("Filtering SM files...")
     gse_df_file = checkpoints.extract_sm_metadata.get(platform="chip", organism=wildcards.organism).output.gse_df
@@ -498,11 +497,17 @@ rule get_exp_mat_qc_df:
         qc_df.to_csv(str(output),sep='\t',index=False)
         print("Done.")
 
-
 #############################################INPUT_FUNCTION_QC##########################################################
 
 
 #############################################PCA########################################################################
+# def get_exp_mat_file(wildcards):
+#     print(wildcards.platform)
+#     if wildcards.platform=="chip":
+#         return f"out/{wildcards.organism}/chip/exp_mat/{wildcards.tag}.tsv"
+#     if wildcards.platform=="seq":
+#         return f"out/{wildcards.organism}/seq/exp_mat/{wildcards.tag}.tsv"
+
 rule pca:
     '''
     Takes exp_mat as an input and outputs first 
@@ -512,50 +517,53 @@ rule pca:
     resources:
         time = 20
     input:
-        # TODO move exp_mat to exp_mat
+        # get_exp_mat_file
         "out/{organism}/{platform}/exp_mat/{tag}.tsv"
     output:
-        protected("out/{organism}/{platform}/pca/{max_genes}_{scale}/{tag}.rds"),
+        protected("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds"),
     message:
         "Performing PCA on {wildcards.tag} \n"
         " Organism: {wildcards.organism} \n"
         " Platform: {wildcards.platform} \n"
-        " Number of genes considered: {wildcards.max_genes} \n"
+        " Number of genes considered: {wildcards.n_genes} \n"
         " Scale: {wildcards.scale}"
-    log: "logs/{organism}/{platform}/pca/{max_genes}_{scale}/{tag}.log"
+    log: "logs/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.log"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/pca.R {input} {output} {wildcards.max_genes} {wildcards.scale}"
+        "Rscript scripts/R/pca.R {input} {output} {wildcards.n_genes} {wildcards.scale}"
         " > {log} 2>&1"
 
 
-def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, min_genes=int,
-                               logav_min=config["chip_logav_min"], logav_max=config["chip_logav_max"],
-                               logmax_max=config["chip_logmax_max"], linmax_max=config["chip_linmax_max"],
+def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, n_genes=int,
+                               logav_min=int(config["chip_logav_min"]), logav_max=int(config["chip_logav_max"]),
+                               logmax_max=int(config["chip_logmax_max"]), linmax_max=int(config["chip_linmax_max"]),
                                allow_negative_val=False):
     """
     QC logic and rooting for choosing files for downstream analysis.
     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
     """
     print(f"Getting filtered exp matrices for {wildcards.organism} seq...")
+    print(n_genes)
+    print(type(n_genes))
+    if wildcards.platform=="chip":
+        sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_mat_qc.tsv"
+        sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
+        sm_qc_df = sm_qc_df.astype({'HAS_NEGATIVE_VALUES': 'bool', },)
+        sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
+        sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
+        sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=logav_min) & (sm_qc_df['LOGAV']<=logav_max)]
+        sm_qc_df = sm_qc_df[sm_qc_df['LINMAX']<=linmax_max]
+        sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=logmax_max]
+        sm_qc_df = sm_qc_df[(sm_qc_df['HAS_NEGATIVE_VALUES']==False) | allow_negative_val]
+        sm_qc_df = sm_qc_df[sm_qc_df['N_GENES']>=n_genes]
+        print(sm_qc_df)
+        exp_mat_tags = sm_qc_df["TAG"].tolist()
 
-    # if wildcards.platform=="chip":
-    #     sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_qc_df.tsv"
-    #     sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
-    #     sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
-    #     sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
-    #     sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=logav_min) & (sm_qc_df['LOGAV']<=logav_max)]
-    #     sm_qc_df = sm_qc_df[sm_qc_df['LINMAX']<=linmax_max]
-    #     sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=logmax_max]
-    #     sm_qc_df = sm_qc_df[(sm_qc_df['HAS_NEGATIVE_VALUES']==False) | allow_negative_val]
-    #     sm_qc_df = sm_qc_df[sm_qc_df['N_GENES']>=min_genes]
-    #     exp_mat_tags = sm_qc_df["TAG"].tolist()
-
-    # elif wildcards.platform=="seq":
-    gse_qc_df_file = str(checkpoints.aggregate_gse_qc_df.get(**wildcards).output)
-    gse_qc_df = pd.read_csv(gse_qc_df_file, sep="\t")
-    gse_qc_df = gse_qc_df[(gse_qc_df['N_GSM'] >= min_gsm) & (gse_qc_df['N_GSM'] <= max_gsm)]
-    exp_mat_tags = gse_qc_df["GSE"].tolist()
+    elif wildcards.platform=="seq":
+        gse_qc_df_file = str(checkpoints.aggregate_gse_qc_df.get(**wildcards).output)
+        gse_qc_df = pd.read_csv(gse_qc_df_file, sep="\t")
+        gse_qc_df = gse_qc_df[(gse_qc_df['N_GSM'] >= min_gsm) & (gse_qc_df['N_GSM'] <= max_gsm)]
+        exp_mat_tags = gse_qc_df["GSE"].tolist()
         # exp_mat_files = \
         #     expand(
         #         rules.gsm_to_gse_cpm.output.gse,
@@ -574,14 +582,16 @@ rule get_pc_list_adapter:
             lambda wildcards:
             expand(rules.pca.output,
                 organism=wildcards.organism,
-                max_genes=wildcards.max_genes,
+                platform=wildcards.platform,
+                n_genes=wildcards.n_genes,
                 scale=wildcards.scale,
                 tag=get_filtered_exp_mat_files(
                     wildcards,
-                    int(config["pca_min_gsm"]),
-                    int(config["pca_max_gsm"]))))
+                    min_gsm=int(config["pca_min_gsm"]),
+                    max_gsm=int(config["pca_max_gsm"]),
+                    n_genes=int(wildcards.n_genes))))
     output:
-        "out/{organism}/seq/pca/{max_genes}_{scale}.list"
+        "out/{organism}/{platform}/pca/{n_genes}_{scale}.list"
     run:
         with open(str(output), 'w') as f:
             for file in input:
@@ -601,13 +611,13 @@ rule get_pc_list:
         rules.get_pc_list_adapter.output
     message:
         "Getting PC list {wildcards.organism} {wildcards.platform} \n"
-        " Number of genes considered: {wildcards.max_genes} \n"
+        " Number of genes considered: {wildcards.n_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance % threshold: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-    log: "logs/{organism}/{platform}/get_pc_list/{max_genes}_{scale}_{max_comp}_{var_threshold}.log"
+    log: "logs/{organism}/{platform}/get_pc_list/{n_genes}_{scale}_{max_comp}_{var_threshold}.log"
     output:
-        "out/{organism}/{platform}/pca/{max_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
+        "out/{organism}/{platform}/pca/{n_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
     conda: "envs/r_scripts.yaml"
     shell:
         "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
@@ -625,20 +635,20 @@ rule fgsea_genesets:
         pc_list=rules.get_pc_list.output,
         geneset="input/{organism}/genesets/{geneset_name}",
     output:
-        "out/{organism}/{platfrom}/pca_fgsea/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+        "out/{organism}/{platform}/pca_fgsea/"
+        "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "raw/{geneset_name}.tsv"
     message:
         "Performing GSEA {wildcards.organism} seq \n"
         " Geneset: {wildcards.geneset_name} \n"
-        " Number of genes considered: {wildcards.max_genes} \n"
+        " Number of genes considered: {wildcards.n_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
         " FGSEA weight parameter: {wildcards.gsea_param}"
     log:
-        "logs/{organism}/{platfrom}/fgsea_genesets/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+        "logs/{organism}/{platform}/fgsea_genesets/"
+        "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "{geneset_name}.log"
     conda: "envs/fgsea.yaml"
     shell:
@@ -648,21 +658,21 @@ rule fgsea_genesets:
 rule prepare_pca_fgsea_result:
     input:
         gsea_results=rules.fgsea_genesets.output,
-        gse_df="out/{organism}/{platfrom}/sm_metadata/gse.tsv"
+        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
     output:
-        "out/{organism}/{platfrom}/pca_fgsea/{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+        "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "prepared/{geneset_name}.tsv"
     message:
         "Preparing results for PCA query. {wildcards.organism} seq \n"
         " Geneset: {wildcards.geneset_name} \n"
-        " Number of genes considered: {wildcards.max_genes} \n"
+        " Number of genes considered: {wildcards.n_genes} \n"
         " Scale of original dataset: {wildcards.scale} \n"
         " Explained variance threshold %: {wildcards.var_threshold} \n"
         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
         " FGSEA weight parameter: {wildcards.gsea_param}"
     log:
-        "logs/{organism}/{platfrom}/prepare_pca_fgsea_result/"
-        "{max_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+        "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
+        "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
         "{geneset_name}.log"
     conda: "envs/r_scripts.yaml"
     shell:
