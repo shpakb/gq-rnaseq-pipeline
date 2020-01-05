@@ -553,7 +553,7 @@ def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, n_genes=int,
         sm_qc_df = sm_qc_df[sm_qc_df['LINMAX']<=linmax_max]
         sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=logmax_max]
         # TODO: for some reason pca.R does not handles zero variance filtering in this dataset. Make it work later.
-        sm_qc_df = sm_qc_df[sm_qc_df['GSE']!="GSE75171"]
+        sm_qc_df = sm_qc_df[sm_qc_df['TAG']!="GSE75171"]
         sm_qc_df = sm_qc_df[(sm_qc_df['HAS_NEGATIVE_VALUES']==False) | allow_negative_val]
         sm_qc_df = sm_qc_df[sm_qc_df['N_GENES']>=n_genes]
         exp_mat_tags = sm_qc_df["TAG"].tolist()
