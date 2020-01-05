@@ -41,7 +41,7 @@ rule all:
             scale="linear",
             max_comp="10",
             var_threshold="0.02",
-            gsea_param="0",
+            gsea_param="1",
             geneset_name=['HALLMARK_HYPOXIA', "GSE120744_TREM_SIGNATURE" ])#'HALLMARK_PANCREAS_BETA_CELLS',
             #               'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
             #               'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
