@@ -17,7 +17,7 @@ glob_postquant_gse_gsm_map = {}
 rule all:
     input:
         # "out/mm/chip/exp_mat_qc.tsv"
-        # "out/mm/chip/exp_mat/GSE8150.tsv"
+        # "out/mm/chip/pca/6000_linear/GSE75171.rds"
         #"out/mm/chip/pca/6000_linear/GSE8150.rds"
         # "out/mm/seq/gse_cpm_qc.tsv"
         # "out/mm/seq/pca/3000_log_10_0.02_PCList.rds"
@@ -543,20 +543,19 @@ def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, n_genes=int,
     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
     """
     print(f"Getting filtered exp matrices for {wildcards.organism} seq...")
-    print(n_genes)
-    print(type(n_genes))
     if wildcards.platform=="chip":
         sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_mat_qc.tsv"
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
-        sm_qc_df = sm_qc_df.astype({'HAS_NEGATIVE_VALUES': 'bool', },)
+        sm_qc_df = sm_qc_df.astype({'HAS_NEGATIVE_VALUES': 'bool'})
         sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
         sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
         sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=logav_min) & (sm_qc_df['LOGAV']<=logav_max)]
         sm_qc_df = sm_qc_df[sm_qc_df['LINMAX']<=linmax_max]
         sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=logmax_max]
+        # TODO: for some reason pca.R does not handles zero variance filtering in this dataset. Make it work later.
+        sm_qc_df = sm_qc_df[sm_qc_df['GSE']!="GSE75171"]
         sm_qc_df = sm_qc_df[(sm_qc_df['HAS_NEGATIVE_VALUES']==False) | allow_negative_val]
         sm_qc_df = sm_qc_df[sm_qc_df['N_GENES']>=n_genes]
-        print(sm_qc_df)
         exp_mat_tags = sm_qc_df["TAG"].tolist()
 
     elif wildcards.platform=="seq":
