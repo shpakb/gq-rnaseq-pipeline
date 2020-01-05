@@ -1,9 +1,9 @@
 configfile: "config.yaml"
 
-# TODO: PCA query on rna-seq
 # TODO: aggregate metadata on kallisto runs in df and choose version of callisto used for most of the samples.
 # TODO: gz all tsv files in pipeline
 
+# TODO: add QC based on variance. Something strange with GSE75171
 
 import pandas as pd
 from os import listdir
