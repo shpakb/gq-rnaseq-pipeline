@@ -31,7 +31,7 @@ Pipeline quantifies SRR files and aggregates them first to GSM and then to GSM m
 ### 1) Run docker container:
 - Better run in tmux as interactive session:
 ```bash
-bsub -Is -q docker-interactive  -a 'docker(biolabs/snakemake:5.8.1_conda4.7.12)' /bin/bash
+bsub -Is -q docker-interactive  -a 'docker(biolabs/snakemake)' /bin/bash
 ```
 ### 2) Git clone snakemake repo to home directory:
 ```bash
