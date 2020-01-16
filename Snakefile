@@ -4,6 +4,9 @@ configfile: "config.yaml"
 # TODO: gz all tsv files in pipeline
 
 # TODO: add QC based on variance. Something strange with GSE75171
+# TODO: IMPLIMENT PRINCIPAL HULL ANALYSIS WITH ELBOW THRESHOLDING
+# TODO: Meaningfuly scale loadings for weighted gsea
+
 
 import pandas as pd
 from os import listdir
@@ -36,13 +39,13 @@ rule all:
                "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
                "prepared/{geneset_name}.tsv",
             organism='mm',
-            platform='chip',
+            platform=['seq', 'chip'],
             n_genes="6000",
             scale="linear",
             max_comp="10",
             var_threshold="0.02",
             gsea_param="1",
-            geneset_name=['HALLMARK_HYPOXIA', "GSE120744_TREM_SIGNATURE" ])#'HALLMARK_PANCREAS_BETA_CELLS',
+            geneset_name=["AGE_CD8_TCELLS"])#['HALLMARK_HYPOXIA', "GSE120744_TREM_SIGNATURE" ])#'HALLMARK_PANCREAS_BETA_CELLS'
             #               'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
             #               'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
             #               'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
