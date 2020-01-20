@@ -44,7 +44,7 @@ rule all:
             scale="linear",
             max_comp="10",
             var_threshold="0.02",
-            gsea_param="1",
+            gsea_param="0",
             geneset_name=["AGE_CD8_TCELLS"])#['HALLMARK_HYPOXIA', "GSE120744_TREM_SIGNATURE" ])#'HALLMARK_PANCREAS_BETA_CELLS'
             #               'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
             #               'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
@@ -545,7 +545,7 @@ def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, n_genes=int,
     QC logic and rooting for choosing files for downstream analysis.
     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
     """
-    print(f"Getting filtered exp matrices for {wildcards.organism} seq...")
+    print(f"Getting filtered exp matrices for {wildcards.organism} {wildcards.platform}...")
     if wildcards.platform=="chip":
         sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_mat_qc.tsv"
         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
