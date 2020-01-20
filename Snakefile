@@ -39,12 +39,12 @@ rule all:
                "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
                "prepared/{geneset_name}.tsv",
             organism='mm',
-            platform='chip',
+            platform=['chip', "seq"],
             n_genes="6000",
             scale="linear",
             max_comp="10",
             var_threshold="0.02",
-            gsea_param="0",
+            gsea_param=["0","1"],
             geneset_name=["AGE_CD8_TCELLS"])#['HALLMARK_HYPOXIA', "GSE120744_TREM_SIGNATURE" ])#'HALLMARK_PANCREAS_BETA_CELLS'
             #               'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
             #               'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
