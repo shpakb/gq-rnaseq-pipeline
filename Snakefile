@@ -772,7 +772,7 @@ rule ks_genesets:
 
 rule prepare_pca_ks_result:
     input:
-        gsea_results=rules.ks_genesets.output,
+        ks_results=rules.ks_genesets.output,
         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
     output:
         "out/{organism}/{platform}/pca_ks/{n_genes}_{scale}_{max_comp}_{var_threshold}/"
@@ -790,5 +790,5 @@ rule prepare_pca_ks_result:
         "{geneset_name}.log"
     conda: "envs/r_scripts.yaml"
     shell:
-        "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
+        "Rscript scripts/R/prepare_pca_ks_results.R {input.ks_results} {input.gse_df} {output}"
         " > {log} 2>&1"

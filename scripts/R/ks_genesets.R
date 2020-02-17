@@ -7,12 +7,10 @@ args <- commandArgs(TRUE)
 pc_list_file <- args[1]
 geneset_file <- args[2]
 output_file <- args[3]
-gsea_param <- as.double(args[4])
 
 cat(sprintf("PC list file: %s \n", pc_list_file))
 cat(sprintf("Geneset file file: %s \n", geneset_file))
 cat(sprintf("Output file: %s \n", output_file))
-cat(sprintf("GSEA weight parameter: %g \n", gsea_param))
 
 pc_list <- readRDS(pc_list_file)
 geneset <- readLines(geneset_file)
