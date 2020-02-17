@@ -30,7 +30,7 @@ for (pc_name in names(pc_list)){
     print(pc_name)
     pc <- pc_list[[pc_name]]
     overlap <- pc[geneset]
-    overlap <- overlap[!is.na(name(overlap))]
+    overlap <- overlap[!is.na(names(overlap))]
     ks_result <- ks.test(pc, overlap)
     ks_result <- ks_result %>% unlist %>% t %>% as.data.frame %>% select("statistic.D", "p.value")
     ks_result$LABEL <- pc_name
