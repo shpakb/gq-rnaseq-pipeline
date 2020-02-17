@@ -13,7 +13,7 @@ cat(sprintf("Annotated output file: %s \n", annotated_output_file))
 ks_results_df <- read.csv(ks_results_df_file, sep='\t', stringsAsFactors=F)
 
 print("Sorting results by NES...")
-ks_results_df <- ks_results_df[order(ks_results_df$PVAL),]
+ks_results_df <- ks_results_df[order(ks_results_df$PVAL, decreasing = F),]
 
 print("Cutting top 1000...")
 cuttof <- min(nrow(ks_results_df), 1000)
@@ -33,7 +33,7 @@ ks_results_df <- merge(ks_results_df, gse_df, all.x=T)
 
 ks_results_df$GSE <- NULL
 
-ks_results_df <- ks_results_df[order(ks_results_df$PVAL),]
+ks_results_df <- ks_results_df[order(ks_results_df$PVAL, , decreasing = F),]
 
 write.table(ks_results_df, annotated_output_file, col.names = T, row.names = F, sep = "\t", quote=F)
 
