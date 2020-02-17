@@ -767,7 +767,7 @@ rule ks_genesets:
         "{geneset_name}.log"
     conda: "envs/fgsea.yaml"
     shell:
-        "Rscript scripts/R/ks_geneset.R {input.pc_list} {input.geneset} {output}"
+        "Rscript scripts/R/ks_genesets.R {input.pc_list} {input.geneset} {output}"
         " > {log} 2>&1"
 
 rule prepare_pca_ks_result:
