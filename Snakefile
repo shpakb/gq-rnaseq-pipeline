@@ -19,6 +19,16 @@ glob_postquant_gse_gsm_map = {}
 
 rule all:
     input:
+        expand("out/{organism}/{platform}/pca_ks/"
+               "{n_genes}_{scale}_{max_comp}_{var_threshold}/"
+               "prepared/{geneset_name}.tsv",
+                organism='mm',
+                platform=['chip'],
+                n_genes="6000",
+                scale="linear",
+                max_comp="10",
+                var_threshold="0.02",
+                geneset_name=["HALLMARK_HYPOXIA"])
         # "out/mm/chip/exp_mat_qc.tsv"
         # "out/mm/chip/pca/6000_linear/GSE75171.rds"
         #"out/mm/chip/pca/6000_linear/GSE8150.rds"
@@ -35,17 +45,17 @@ rule all:
         #         platform=['chip'],
         #         n_genes=config['pca_n_genes'],
         #         scale=config['pca_scale'])
-        expand("out/{organism}/{platform}/pca_fgsea/"
-               "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-               "prepared/{geneset_name}.tsv",
-            organism='mm',
-            platform=['chip', "seq"],
-            n_genes="6000",
-            scale="linear",
-            max_comp="10",
-            var_threshold="0.02",
-            gsea_param=["0","1"],
-            geneset_name=["AGE_CD8_TCELLS"])#['HALLMARK_HYPOXIA', "GSE120744_TREM_SIGNATURE" ])#'HALLMARK_PANCREAS_BETA_CELLS'
+        # expand("out/{organism}/{platform}/pca_fgsea/"
+        #        "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+        #        "prepared/{geneset_name}.tsv",
+        #     organism='mm',
+        #     platform=['chip', "seq"],
+        #     n_genes="6000",
+        #     scale="linear",
+        #     max_comp="10",
+        #     var_threshold="0.02",
+        #     gsea_param=["0","1"],
+        #     geneset_name=["AGE_CD8_TCELLS"])#['HALLMARK_HYPOXIA', "GSE120744_TREM_SIGNATURE" ])#'HALLMARK_PANCREAS_BETA_CELLS'
             #               'HALLMARK_PI3K_AKT_MTOR_SIGNALING', 'HALLMARK_SPERMATOGENESIS',
             #               'HALLMARK_FATTY_ACID_METABOLISM', 'HALLMARK_BILE_ACID_METABOLISM',
             #               'HALLMARK_P53_PATHWAY', 'HALLMARK_MYOGENESIS', 'HALLMARK_PROTEIN_SECRETION',
@@ -626,60 +636,60 @@ rule get_pc_list:
         " > {log} 2>&1"
 
 # TODO: remove first two lines in genesets inside the script. Artifact from GQ
-rule fgsea_genesets:
-    '''
-    Performs fgsea against list of PC components. Outputs ranked list of results with NES.
-    '''
-    resources:
-        mem_ram=32,
-        threads=8
-    input:
-        pc_list=rules.get_pc_list.output,
-        geneset="input/{organism}/genesets/{geneset_name}",
-    output:
-        "out/{organism}/{platform}/pca_fgsea/"
-        "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-        "raw/{geneset_name}.tsv"
-    message:
-        "Performing GSEA {wildcards.organism} seq \n"
-        " Geneset: {wildcards.geneset_name} \n"
-        " Number of genes considered: {wildcards.n_genes} \n"
-        " Scale of original dataset: {wildcards.scale} \n"
-        " Explained variance threshold %: {wildcards.var_threshold} \n"
-        " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-        " FGSEA weight parameter: {wildcards.gsea_param}"
-    log:
-        "logs/{organism}/{platform}/fgsea_genesets/"
-        "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-        "{geneset_name}.log"
-    conda: "envs/fgsea.yaml"
-    shell:
-        "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output} {wildcards.gsea_param}"
-        " > {log} 2>&1"
-
-rule prepare_pca_fgsea_result:
-    input:
-        gsea_results=rules.fgsea_genesets.output,
-        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
-    output:
-        "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-        "prepared/{geneset_name}.tsv"
-    message:
-        "Preparing results for PCA query. {wildcards.organism} seq \n"
-        " Geneset: {wildcards.geneset_name} \n"
-        " Number of genes considered: {wildcards.n_genes} \n"
-        " Scale of original dataset: {wildcards.scale} \n"
-        " Explained variance threshold %: {wildcards.var_threshold} \n"
-        " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-        " FGSEA weight parameter: {wildcards.gsea_param}"
-    log:
-        "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
-        "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-        "{geneset_name}.log"
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
-        " > {log} 2>&1"
+# rule fgsea_genesets:
+#     '''
+#     Performs fgsea against list of PC components. Outputs ranked list of results with NES.
+#     '''
+#     resources:
+#         mem_ram=32,
+#         threads=8
+#     input:
+#         pc_list=rules.get_pc_list.output,
+#         geneset="input/{organism}/genesets/{geneset_name}",
+#     output:
+#         "out/{organism}/{platform}/pca_fgsea/"
+#         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+#         "raw/{geneset_name}.tsv"
+#     message:
+#         "Performing GSEA {wildcards.organism} seq \n"
+#         " Geneset: {wildcards.geneset_name} \n"
+#         " Number of genes considered: {wildcards.n_genes} \n"
+#         " Scale of original dataset: {wildcards.scale} \n"
+#         " Explained variance threshold %: {wildcards.var_threshold} \n"
+#         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+#         " FGSEA weight parameter: {wildcards.gsea_param}"
+#     log:
+#         "logs/{organism}/{platform}/fgsea_genesets/"
+#         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+#         "{geneset_name}.log"
+#     conda: "envs/fgsea.yaml"
+#     shell:
+#         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output} {wildcards.gsea_param}"
+#         " > {log} 2>&1"
+#
+# rule prepare_pca_fgsea_result:
+#     input:
+#         gsea_results=rules.fgsea_genesets.output,
+#         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
+#     output:
+#         "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+#         "prepared/{geneset_name}.tsv"
+#     message:
+#         "Preparing results for PCA query. {wildcards.organism} seq \n"
+#         " Geneset: {wildcards.geneset_name} \n"
+#         " Number of genes considered: {wildcards.n_genes} \n"
+#         " Scale of original dataset: {wildcards.scale} \n"
+#         " Explained variance threshold %: {wildcards.var_threshold} \n"
+#         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+#         " FGSEA weight parameter: {wildcards.gsea_param}"
+#     log:
+#         "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
+#         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+#         "{geneset_name}.log"
+#     conda: "envs/r_scripts.yaml"
+#     shell:
+#         "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
+#         " > {log} 2>&1"
 
 
 #########################################WGCNA##########################################################################
@@ -728,3 +738,57 @@ rule prepare_pca_fgsea_result:
 #         qc_df=pd.concat(qc_df_list)
 #         qc_df.to_csv(str(output),sep='\t',index=False)
 #         print("Done.")
+
+
+##############################################KS_RESULTS#################################
+rule ks_genesets:
+    '''
+    Performs ks test on list of PC components. Output ranked by p-val 
+    '''
+    resources:
+        mem_ram=32
+    input:
+        pc_list=rules.get_pc_list.output,
+        geneset="input/{organism}/genesets/{geneset_name}",
+    output:
+        "out/{organism}/{platform}/pca_ks/"
+        "{n_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "raw/{geneset_name}.tsv"
+    message:
+        "Performing GSEA {wildcards.organism} seq \n"
+        " Geneset: {wildcards.geneset_name} \n"
+        " Number of genes considered: {wildcards.n_genes} \n"
+        " Scale of original dataset: {wildcards.scale} \n"
+        " Explained variance threshold %: {wildcards.var_threshold} \n"
+        " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+    log:
+        "logs/{organism}/{platform}/ks_genesets/"
+        "{n_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{geneset_name}.log"
+    conda: "envs/fgsea.yaml"
+    shell:
+        "Rscript scripts/R/ks_geneset.R {input.pc_list} {input.geneset} {output}"
+        " > {log} 2>&1"
+
+rule prepare_pca_ks_result:
+    input:
+        gsea_results=rules.ks_genesets.output,
+        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
+    output:
+        "out/{organism}/{platform}/pca_ks/{n_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "prepared/{geneset_name}.tsv"
+    message:
+        "Preparing results for PCA query. {wildcards.organism} seq \n"
+        " Geneset: {wildcards.geneset_name} \n"
+        " Number of genes considered: {wildcards.n_genes} \n"
+        " Scale of original dataset: {wildcards.scale} \n"
+        " Explained variance threshold %: {wildcards.var_threshold} \n"
+        " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+    log:
+        "logs/{organism}/{platform}/prepare_pca_ks_result/"
+        "{n_genes}_{scale}_{max_comp}_{var_threshold}/"
+        "{geneset_name}.log"
+    conda: "envs/r_scripts.yaml"
+    shell:
+        "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
+        " > {log} 2>&1"
