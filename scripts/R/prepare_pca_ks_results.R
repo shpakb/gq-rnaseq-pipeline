@@ -6,7 +6,7 @@ ks_results_df_file <- args[1]
 gse_df_file <- args[2]
 annotated_output_file <- args[3]
 
-cat(sprintf("GSEA results file: %s \n", ks_results_df_file))
+cat(sprintf("KS results file: %s \n", ks_results_df_file))
 cat(sprintf("GSE df file: %s \n", gse_df_file))
 cat(sprintf("Annotated output file: %s \n", annotated_output_file))
 
