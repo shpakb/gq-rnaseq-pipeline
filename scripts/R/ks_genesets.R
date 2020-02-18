@@ -22,7 +22,8 @@ output_df <-
   data.frame(
     LABEL="blank",
     PVAL=0,
-    STAT=0
+    STAT=0,
+    INTERSECTION=0
   )
 
 for (pc_name in names(pc_list)){
@@ -34,7 +35,7 @@ for (pc_name in names(pc_list)){
     ks_result <- ks.test(pc, overlap)
     ks_result <- ks_result %>% unlist %>% t %>% as.data.frame %>% select("statistic.D", "p.value")
     ks_result$LABEL <- pc_name
-    colnames(ks_result) <- c("STAT", "PVAL", "LABEL")
+    colnames(ks_result) <- c("STAT", "PVAL", "LABEL", "INTERSECTION")
     output_df <- rbind(output_df, ks_result)
  }, error = function(e) {
     print("woops!")
