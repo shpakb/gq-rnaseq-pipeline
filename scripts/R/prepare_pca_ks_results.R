@@ -33,7 +33,7 @@ ks_results_df <- merge(ks_results_df, gse_df, all.x=T)
 
 ks_results_df$GSE <- NULL
 
-ks_results_df <- ks_results_df[order(ks_results_df$PVAL, , decreasing = F),]
+ks_results_df <- ks_results_df[order(ks_results_df$PVAL, decreasing = F),]
 
 write.table(ks_results_df, annotated_output_file, col.names = T, row.names = F, sep = "\t", quote=F)
 
