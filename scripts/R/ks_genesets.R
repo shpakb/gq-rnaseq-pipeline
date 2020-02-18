@@ -34,7 +34,7 @@ for (pc_name in names(pc_list)){
     overlap <- overlap[!is.na(names(overlap))]
     ks_result <- ks.test(x = pc, y = overlap, exact = TRUE, alternative = "greater")
 
-    ks_result <- ks_result %>% unlist %>% t %>% as.data.frame %>% select("statistic.D", "p.value")
+    ks_result <- ks_result %>% unlist %>% t %>% as.data.frame %>% select("statistic.D^+", "p.value")
     ks_result$LABEL <- pc_name
     ks_result$INTERSECTION <- length(overlap)
     colnames(ks_result) <- c("STAT", "PVAL", "LABEL", "INTERSECTION")
