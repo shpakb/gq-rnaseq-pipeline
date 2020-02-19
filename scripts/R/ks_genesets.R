@@ -32,9 +32,9 @@ for (pc_name in names(pc_list)){
     pc <- pc_list[[pc_name]]
     overlap <- pc[geneset]
     overlap <- overlap[!is.na(names(overlap))]
-    ks_result <- ks.test(x = pc, y = overlap, exact = TRUE, alternative = "greater")
-
-    ks_result <- ks_result %>% unlist %>% t %>% as.data.frame %>% select("statistic.D^+", "p.value")
+    pc <- pc[!(names(pc) %in% names(overlap))]
+    ks_result <- ks.test(x = pc, y = overlap, exact = TRUE, alternative = "two.sided")
+    ks_result <- ks_result %>% unlist %>% t %>% as.data.frame %>% select("statistic.D", "p.value")
     ks_result$LABEL <- pc_name
     ks_result$INTERSECTION <- length(overlap)
     colnames(ks_result) <- c("STAT", "PVAL", "LABEL", "INTERSECTION")
