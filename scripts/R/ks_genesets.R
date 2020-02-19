@@ -34,7 +34,7 @@ for (pc_name in names(pc_list)){
     pc <- pc_list[[pc_name]]
     indexes <- which(names(pc) %in% geneset)
     pval <- limma::wilcoxGST(index=indexes, statistics=pc, alternative = "either")
-    intersection <- length(overlap)
+    intersection <- length(indexes)
     output_df <- rbind(output_df, c(pc_name, pval, intersection))
  }, error = function(e) {
     print("woops!")
