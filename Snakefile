@@ -28,7 +28,7 @@ rule all:
                 scale="linear",
                 max_comp="10",
                 var_threshold="0.02",
-                geneset_name=["HALLMARK_HYPOXIA"])
+                geneset_name=["HALLMARK_HYPOXIA", "GSE120744_TREM_SIGNATURE"])
         # "out/mm/chip/exp_mat_qc.tsv"
         # "out/mm/chip/pca/6000_linear/GSE75171.rds"
         #"out/mm/chip/pca/6000_linear/GSE8150.rds"
