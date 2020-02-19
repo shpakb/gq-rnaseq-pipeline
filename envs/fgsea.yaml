@@ -6,3 +6,4 @@ dependencies:
   - bioconductor-fgsea
   - r-foreach
   - r-doParallel
+  - bioconductor-limma

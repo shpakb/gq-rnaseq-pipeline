@@ -1,6 +1,7 @@
 suppressMessages(library(tidyverse))
 suppressMessages(library(fgsea))
 suppressMessages(library(data.table))
+suppressMessages(library(limma))
 
 args <- commandArgs(TRUE)
 
@@ -22,23 +23,19 @@ output_df <-
   data.frame(
     LABEL="blank",
     PVAL=0,
-    STAT=0,
-    INTERSECTION=0
+    INTERSECTION=0,
+    stringsAsFactors=F
   )
 
 for (pc_name in names(pc_list)){
   tryCatch({
     print(pc_name)
+    gst_result <- list()
     pc <- pc_list[[pc_name]]
-    overlap <- pc[geneset]
-    overlap <- overlap[!is.na(names(overlap))]
-    pc <- pc[!(names(pc) %in% names(overlap))]
-    ks_result <- ks.test(x = pc, y = overlap, exact = TRUE, alternative = "two.sided")
-    ks_result <- ks_result %>% unlist %>% t %>% as.data.frame %>% select("statistic.D", "p.value")
-    ks_result$LABEL <- pc_name
-    ks_result$INTERSECTION <- length(overlap)
-    colnames(ks_result) <- c("STAT", "PVAL", "LABEL", "INTERSECTION")
-    output_df <- rbind(output_df, ks_result)
+    indexes <- which(names(pc) %in% geneset)
+    pval <- limma::wilcoxGST(index=indexes, statistics=pc, alternative = "either")
+    intersection <- length(overlap)
+    output_df <- rbind(output_df, c(pc_name, pval, intersection))
  }, error = function(e) {
     print("woops!")
     print(e$message)

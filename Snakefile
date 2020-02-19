@@ -475,7 +475,6 @@ rule extract_exp_mat:
         "Rscript scripts/R/get_exp_table.R {params.sm} {input.gpl_dir} {output.exp_table} {output.qc_report}"
         " > {log} 2>&1"
 
-
 def get_filtered_sm_qc_files(wildcards):
     print("Filtering SM files...")
     gse_df_file = checkpoints.extract_sm_metadata.get(platform="chip", organism=wildcards.organism).output.gse_df
