@@ -23,7 +23,7 @@ rule all:
                "{n_genes}_{scale}_{max_comp}_{var_threshold}/"
                "prepared/{geneset_name}.tsv",
                 organism='mm',
-                platform=['chip'],
+                platform=['chip', "seq"],
                 n_genes="6000",
                 scale="linear",
                 max_comp="10",
