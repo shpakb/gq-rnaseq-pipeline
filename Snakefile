@@ -78,668 +78,668 @@ rule all:
 
 #############################################FUNCTIONS##################################################################
 
-
-def get_filtered_gse_gsm_map(gsm_df_file, organism,
-                             min_gsm=None, max_gsm=None,
-                             gpl_df_file=None, # if to be filtered by supported gpl
-                             srr_df_file=None, min_spots=None, max_spots=None, # if to be filtered by the number of spots
-                             gsm_qc_file=None, min_exp_genes=None,
-                             n_batches=None, batch_n=None):
-    """
-    Takes FILES not links. Links to checkpoints are called inside other functions.
-    Abstracts GSM GSE filtering on every level of the pipeline. Called in other functions to obtain proper mappings and
-    filtered lists of GSM/GSE
-    """
-    global glob_gsm_srr_map
-    global glob_gse_gsm_map
-
-    print("Filtering GSM by metadata...")
-    organism_gsm = {"hs": "Homo sapiens", "mm": "Mus musculus", "rn": "Rattus norvegicus"}[organism]
-    gsm_df = pd.read_csv(gsm_df_file, sep='\t')
-    gsm_df = gsm_df[gsm_df["ORGANISM"] == organism_gsm]
-    gsm_df = gsm_df[gsm_df["LIBRARY_SELECTION"] == "cDNA"]
-    gsm_df = gsm_df[gsm_df["LIBRARY_STRATEGY"] == "RNA-Seq"]
-
-    if gpl_df_file:
-        print("Filtering GSM by platform...")
-        gpl_df = pd.read_csv(gpl_df_file, sep='\t')
-        gpl_df = gpl_df[gpl_df["LAB"]==organism.upper()]
-        gpl_list = gpl_df["GPL"].tolist()
-        gsm_df = gsm_df[gsm_df["GPL"].isin(gpl_list)]
-
-    gsm_df = gsm_df[["GSE", "GSM"]]
-    gsm_df = gsm_df.drop_duplicates()
-
-    if min_spots:
-        print("Filtering GSM by number of spots...")
-        if organism not in glob_gsm_srr_map:
-            print("Saving srr df to global var")
-            srr_df = pd.read_csv(srr_df_file, sep="\t")
-            gsm_list = list(set(gsm_df['GSM'].tolist()))
-            srr_df = srr_df[srr_df["GSM"].isin(gsm_list)]
-            glob_gsm_srr_map[organism] = srr_df
-
-        print("Retrieving GSM SRR map from global...")
-        srr_df = glob_gsm_srr_map[organism]
-        srr_df = srr_df[['GSM', 'SPOTS']]
-        srr_df = srr_df.groupby(['GSM']).sum().reset_index()
-        srr_df = srr_df.astype({'GSM': 'str', 'SPOTS':'float'})
-        srr_df = srr_df[(srr_df['SPOTS'] >= min_spots) & (srr_df['SPOTS'] <= max_spots)]
-        filtered_gsm_list = srr_df['GSM'].tolist()
-        gsm_df = gsm_df[gsm_df['GSM'].isin(filtered_gsm_list)]
-
-    if gsm_qc_file:
-        print("Filtering GSM by number of expressed genes...")
-        gsm_qc_df = pd.read_csv(gsm_qc_file, sep='\t')
-        gsm_qc_df = gsm_qc_df[gsm_qc_df["N_EXP_GENES"] >= min_exp_genes]
-        filtered_gsm_list = gsm_qc_df["GSM"].tolist()
-        gsm_df = gsm_df[gsm_df['GSM'].isin(filtered_gsm_list)]
-
-    if min_gsm:
-        print("Filtering by number of passing GSM per GSE...")
-        gse_counts_df = gsm_df['GSE'].value_counts().reset_index()
-        gse_counts_df = gse_counts_df.rename(columns={"index":"GSE", "GSE":"COUNT"})
-        gse_counts_df = gse_counts_df[(gse_counts_df['COUNT'] >= min_gsm) & (gse_counts_df['COUNT'] <= max_gsm)]
-        passing_gse = gse_counts_df['GSE'].tolist()
-        gsm_df = gsm_df[gsm_df['GSE'].isin(passing_gse)]
-        print("Further sub sampling for SRR df...")
-        gsm_list = list(set(gsm_df['GSM'].tolist()))
-        glob_gsm_srr_map[organism] = glob_gsm_srr_map[organism][glob_gsm_srr_map[organism]["GSM"].isin(gsm_list)]
-
-    print("Done.")
-    return gsm_df
-
-#############################################RULES######################################################################
-
-rule sm_download:
-    '''
-    Takes search output .txt, parses out all links and downloads them. (wget -nc) Existing up to date files out dir
-    doesn't reload. Writes completion flag in the end.
-    '''
-    resources:
-        time=60*24*2,
-        download_res=1,
-        writing_res=1,
-        priority=5
-    input:
-        "input/{organism}/{platform}/gds_search_result.txt"
-    output:
-        "flags/{organism}/{platform}/sm_download.flag"
-    params:
-        sm_download_dir="out/{organism}/{platform}/series_matrices"
-    message: "Downloading series matrices for {wildcards.organism} {wildcards.platform}..."
-    log: "logs/{organism}/{platform}/sm_download.log"
-    shell:
-        "scripts/bash/download_sm.sh {input} {params.sm_download_dir} "
-        " > {log} 2>&1 &&"
-        " touch {output}"
-
-checkpoint extract_sm_metadata:
-    input:
-        rules.sm_download.output
-    output:
-        gsm_df="out/{organism}/{platform}/sm_metadata/gsm.tsv",
-        gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
-    params:
-        sm_download_dir=rules.sm_download.params.sm_download_dir
-    message: "Aggregating metadata from series matrices {wildcards.organism} {wildcards.platform} ..."
-    log: "logs/{organism}/{platform}/sm_metadata.log"
-    shell:
-        "python scripts/python/parse_sm_metadata.py {params.sm_download_dir} {output.gse_df} {output.gsm_df}"
-        " > {log} 2>&1"
-
-#############################################RNASEQ#####################################################################
-rule sra_accession_df_download:
-    resources:
-        download_res=1,
-        writing_res=1,
-        mem_ram=2
-    output:
-        temp("out/data/sra_accession_raw.tab")
-    message: "Downloading SRA accession table..."
-    log: "logs/sra_accession_df_download.log"
-    shell:
-        "wget -O {output} {config[sra_accession_df]}"
-        " > {log} 2>&1"
-
-rule get_srr_df:
-    resources:
-        writing_res=1
-    input:
-        rules.sra_accession_df_download.output
-    output:
-        "out/data/srr_gsm_spots.tsv"
-    message: "Cleaning SRR df..."
-    log: "logs/get_srr_df.log"
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "scripts/bash/clean_sra_accession_df.sh {input} {output}"
-        " > {log} 2>&1 &&"
-        " Rscript scripts/R/clean_sra_accession_df.R {output}"
-        " >> {log} 2>&1"
-
-rule sra_download:
-    resources:
-        download_res=1,
-        writing_res=1,
-        mem_ram=2
-    priority: 3
-    output: temp("out/{organism}/seq/sra/{srr}.sra")
-    log:    "logs/{organism}/seq/sra_download/{srr}.log"
-    message: "Downloading {wildcards.srr} ({wildcards.organism})..."
-    shadow: "shallow"
-    conda: "envs/quantify.yaml"
-    shell:
-        "scripts/bash/download_sra.sh {wildcards.srr} {output}"
-        " > {log} 2>&1"
-
-rule sra_fastqdump:
-    resources:
-        writing_res=1
-    input:
-        rules.sra_download.output
-    output:
-        fastq_dir=temp(directory("out/{organism}/seq/fastq/{srr}")),
-    log:    "logs/{organism}/seq/sra_fastqdump/{srr}.log"
-    message: "fastq-dump {wildcards.srr} ({wildcards.organism})"
-    conda: "envs/quantify.yaml"
-    shadow: "shallow"
-    shell:
-        "fastq-dump --outdir {output.fastq_dir} --split-3 {input}"
-        " > {log} 2>&1"
-
-rule fastq_kallisto:
-    resources:
-        mem_ram=lambda wildcards: config["quant_mem_ram"][wildcards.organism]
-    priority: 2
-    input:
-        fastq_dir=rules.sra_fastqdump.output,
-        refseq="input/{organism}/seq/refseq_kallisto"
-    output:
-        # before uncommenting h5 remove files of older versions as described in README. See NOTES on h5
-        #h5=protected("out/{organism}/seq/kallisto/{srr}/abundance.h5"),
-        tsv=protected("out/{organism}/seq/kallisto/{srr}/abundance.tsv"),
-        json=protected("out/{organism}/seq/kallisto/{srr}/run_info.json")
-    log: "logs/{organism}/seq/fastq_kallisto/{srr}.log"
-    message: "Kallisto: {wildcards.srr} ({wildcards.organism})"
-    conda: "envs/quantify.yaml"
-    shadow: "shallow"
-    shell:
-        "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {input.refseq}"
-        " out/{wildcards.organism}/seq/kallisto/{wildcards.srr}"# output dir 
-        " {config[n_bootstrap]} " 
-        " > {log} 2>&1"
-
-def get_srr_files_for_gsm(wildcards):
-    print(f"Getting SRR for {wildcards.gsm}")
-    global glob_gsm_srr_map
-
-    # for speed. Otherwise it takes forever
-    if wildcards.organism not in glob_gsm_srr_map:
-        print("Saving srr df to global var")
-        srr_df_file = "out/data/srr_gsm_spots.tsv"
-        srr_df = pd.read_csv(srr_df_file, sep="\t")
-        gsm_df = get_filtered_gse_gsm_map(f"out/{wildcards.organism}/seq/sm_metadata/gsm.tsv", wildcards.organism)
-        gsm_list = list(set(gsm_df['GSM'].tolist()))
-        srr_df = srr_df[srr_df["GSM"].isin(gsm_list)]
-        glob_gsm_srr_map[wildcards.organism] = srr_df
-
-    srr_df = glob_gsm_srr_map[wildcards.organism]
-    srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
-    srr_list = list(set(srr_list)) # removing possible duplicates
-    srr_files = \
-        expand(rules.fastq_kallisto.output.tsv,
-        srr=srr_list,
-        organism=wildcards.organism)
-
-    return srr_files
-
-rule srr_to_gsm:
-    resources:
-        mem_ram=1
-    input:
-        srr_files=ancient(get_srr_files_for_gsm),
-        transcript_gene=ancient("input/{organism}/seq/transcript_gene.tsv")
-    output:
-        gsm_file="out/{organism}/seq/gsms/{gsm}.tsv",
-        gsm_qc="out/{organism}/seq/gsms_qc/{gsm}_qc.tsv"
-    log: "logs/{organism}/seq/srr_to_gsm/{gsm}.log"
-    message: "Aggregating {wildcards.gsm} ({wildcards.organism})..."
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_files}"
-        " > {log} 2>&1"
-
-def get_filtered_gsm_files_prequant(wildcards, **kwargs):
-    print("Getting GSM files for quantification...")
-    gse_gsm_map = get_filtered_gse_gsm_map(
-        gsm_df_file=checkpoints.extract_sm_metadata.get(**wildcards).output.gsm_df,
-        organism=wildcards.organism,
-        **kwargs
-    )
-    gsm_list = list(set(gse_gsm_map['GSM'].tolist()))
-
-    print("Done.")
-    return \
-        expand("out/{organism}/seq/gsms/{gsm}.tsv",
-            organism=wildcards.organism, gsm=gsm_list)
-
-checkpoint aggregate_gsm_qc_df:
-    input:
-        lambda wildcards:
-        ancient(get_filtered_gsm_files_prequant(wildcards,
-            min_gsm=2, max_gsm=200,
-            gpl_df_file="input/gpl.tsv", # if to be filtered by supported gpl
-            srr_df_file=str(rules.get_srr_df.output),
-            # if to be filtered by the number of spots
-            min_spots=int(config["min_spots"][wildcards.organism]),
-            max_spots=int(config["max_spots"][wildcards.organism])))
-    output:
-        gsm_qc_df="out/{organism}/seq/gsm_qc.tsv"
-    run:
-        print("Aggregating GSM qc df...")
-        n_exp_genes=\
-            [
-                sum(pd.read_csv(gsm_file,sep='\t')['EST_COUNTS']!=0)
-                for gsm_file in input
-            ]
-        gsm_id_list=\
-            [
-                re.findall("GSM\d+", gsm_file)[0]
-                for gsm_file in input
-            ]
-        gsm_qc_df = pd.DataFrame(
-            {'GSM': gsm_id_list,
-             'N_EXP_GENES': n_exp_genes
-             })
-        gsm_qc_df.to_csv(str(output),sep='\t',index=False)
-        print("Done.")
-
-def get_gsm_files_for_gse(wildcards):
-    global glob_postquant_gsm_gse_map
-    print(f"Getting GSM files for {wildcards.gse}...")
-    if wildcards.organism not in glob_postquant_gse_gsm_map:
-        glob_postquant_gse_gsm_map[wildcards.organism] = \
-            get_filtered_gse_gsm_map(
-                gsm_df_file=checkpoints.extract_sm_metadata.get(**wildcards).output.gsm_df,
-                min_gsm=2, max_gsm=200,
-                gpl_df_file="input/gpl.tsv", # if to be filtered by supported gpl
-                srr_df_file=str(rules.get_srr_df.output),
-                # if to be filtered by the number of spots
-                min_spots=int(config["min_spots"][wildcards.organism]),
-                max_spots=int(config["max_spots"][wildcards.organism]),
-                gsm_qc_file=str(checkpoints.aggregate_gsm_qc_df.get(**wildcards).output),
-                min_exp_genes=int(config["min_exp_genes"]),
-                organism=wildcards.organism
-        )
-    gse_gsm_map = glob_postquant_gsm_gse_map[wildcards.organism]
-    gsm_list = gse_gsm_map[gse_gsm_map['GSE']==wildcards.gse].tolist()
-
-    return \
-        expand(rules.srr_to_gsm.output.gsm_file,
-            organism=wildcards.organism, gsm=gsm_list)
-
-rule gsm_to_gse_cpm:
-    '''
-    Aggregates GSM to sorted by TPM values, CPM GSE
-    '''
-    input:
-        gsm_files=ancient(get_gsm_files_for_gse),
-        gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
-    output:
-        gse=protected("out/{organism}/seq/exp_mat/{gse}.tsv")
-    log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
-    message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
-    shadow: "shallow"
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "Rscript scripts/R/gsm_to_gse.R {input.gene_mapping} {output.gse} {input.gsm_files}"
-        " > {log} 2>&1"
-
-rule gsm_to_gse_counts:
-    '''
-    Aggregates unsorted raw counts GSE
-    '''
-    input:
-        gsm_files=ancient(get_gsm_files_for_gse),
-        gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
-    output:
-        gse=protected("out/{organism}/seq/gses_counts/{gse}.tsv")
-    log: "logs/{organism}/gsm_to_gse_counts/{gse}.log"
-    message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
-    shadow: "shallow"
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "Rscript scripts/R/gsm_to_gse_raw_counts.R {input.gene_mapping} {output.gse} {input.gsm_files}"
-        " > {log} 2>&1"
-
-checkpoint aggregate_gse_qc_df:
-    """
-    DOESN'T PULL ANY OTHER RULES YET. Just aggregates info on existing files in folder
-    Aggregates GSE qc df with GSE ids and number of GSM per GSE
-    """
-    # input:
-    #     lambda wildcards:
-    #         get_filtered_gse_files(wildcards,
-    #             min_gsm=2, max_gsm=200,
-    #             gpl_df_file="input/gpl.tsv", # if to be filtered by supported gpl
-    #             srr_df_file=str(rules.get_srr_df.output),
-    #             # if to be filtered by the number of spots
-    #             min_spots=int(config["min_spots"][wildcards.organism]),
-    #             max_spots=int(config["max_spots"][wildcards.organism]))
-    output:
-        "out/{organism}/seq/gse_cpm_qc.tsv"
-    run:
-        print(f"Aggregating GSE qc df for {wildcards.organism}...")
-        gses_dir=f"out/{wildcards.organism}/seq/exp_mat"
-        gse_files = [gses_dir + "/" + f for f in listdir(gses_dir)]
-        n_gsm_list=\
-            [
-                len(pd.read_csv(gse_file,sep='\t').columns)
-                for gse_file in gse_files
-            ]
-        gse_id_list=\
-            [
-                re.findall("GSE\d+", gse_file)[0]
-                for gse_file in gse_files
-            ]
-        gse_qc_df = pd.DataFrame(
-            {'GSE': gse_id_list,
-             'N_GSM': n_gsm_list
-             })
-
-        gse_qc_df.to_csv(str(output),sep='\t',index=False)
-        print("Done.")
-
-
-#############################################CHIP_ROOT##################################################################
-rule extract_exp_mat:
-    '''
-    Extracts expression matrices from files and writes QC report for downstream filtering.
-    gq_df: TAG	N_GSM	GPL	HAS_EXP_MAT	LOGAV	LINMAX	LOGMAX	N_GENES	HAS_NEGATIVE_VALUES	PROCESSED
-    Writes empty exp table if error produced.
-    '''
-    resources:
-        time=40
-    input:
-        gpl_dir="input/{organism}/chip/platform_annotation"
-    params:
-        sm="out/{organism}/chip/series_matrices/{tag}_series_matrix.txt.gz"
-    output:
-        exp_table=protected("out/{organism}/chip/exp_mat/{tag}.tsv"),
-        qc_report=protected("out/{organism}/chip/exp_mat/{tag}_qc.tsv")
-    log: "logs/{organism}/chip/extract_exp_mat/{tag}.log"
-    message: "Extracting expression table from {wildcards.tag}_series_matrix.txt.gz ({wildcards.organism})..."
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "Rscript scripts/R/get_exp_table.R {params.sm} {input.gpl_dir} {output.exp_table} {output.qc_report}"
-        " > {log} 2>&1"
-
-def get_filtered_sm_qc_files(wildcards):
-    print("Filtering SM files...")
-    gse_df_file = checkpoints.extract_sm_metadata.get(platform="chip", organism=wildcards.organism).output.gse_df
-    print(gse_df_file)
-    gse_df = pd.read_csv(gse_df_file, sep="\t")
-    print(gse_df)
-    gse_df = gse_df[(gse_df['NUMBER_GSM']>=config['min_gsm']) & (gse_df['NUMBER_GSM']<=config['max_gsm'])]
-    print("Filtering SM by list of supported GPL...")
-    gpl_dir = f"input/{wildcards.organism}/chip/platform_annotation"
-    gpl_list = [f for f in listdir(gpl_dir) if isfile(join(gpl_dir, f))]
-    gpl_list = [re.search('(.+?).3col.gz', gpl).group(1) for gpl in gpl_list]
-    gse_df = gse_df[gse_df["GPL"].isin(gpl_list)]
-    print("Removing super series...")
-    gse_df = gse_df[gse_df["SUPER_SERIES_OF"].isna()]
-
-    filtered_sm_tags=gse_df["GSE"].to_list()
-
-    filtered_sm_qc_files = \
-        expand('out/{organism}/chip/exp_mat/{tag}_qc.tsv',
-        organism=wildcards.organism,
-        tag=filtered_sm_tags)
-    print("Done.")
-    return filtered_sm_qc_files
-
-rule get_exp_mat_qc_df:
-    input: get_filtered_sm_qc_files
-    output: "out/{organism}/{platform}/exp_mat_qc.tsv"
-    run:
-        print(f"Aggregating QC df for SM {wildcards.organism}...")
-        qc_df_list=[pd.read_csv(qc_file,sep='\t') for qc_file in input]
-        qc_df=pd.concat(qc_df_list)
-        qc_df.to_csv(str(output),sep='\t',index=False)
-        print("Done.")
-
-#############################################INPUT_FUNCTION_QC##########################################################
-
-
-#############################################PCA########################################################################
-# def get_exp_mat_file(wildcards):
-#     print(wildcards.platform)
-#     if wildcards.platform=="chip":
-#         return f"out/{wildcards.organism}/chip/exp_mat/{wildcards.tag}.tsv"
-#     if wildcards.platform=="seq":
-#         return f"out/{wildcards.organism}/seq/exp_mat/{wildcards.tag}.tsv"
-
-rule pca:
-    '''
-    Takes exp_mat as an input and outputs first 
-    1) 10 (or less) PC components loadings scores
-    2) Stats- explained var, etc. 
-    '''
-    resources:
-        time = 20
-    input:
-        # get_exp_mat_file
-        "out/{organism}/{platform}/exp_mat/{tag}.tsv"
-    output:
-        protected("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds"),
-    message:
-        "Performing PCA on {wildcards.tag} \n"
-        " Organism: {wildcards.organism} \n"
-        " Platform: {wildcards.platform} \n"
-        " Number of genes considered: {wildcards.n_genes} \n"
-        " Scale: {wildcards.scale}"
-    log: "logs/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.log"
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "Rscript scripts/R/pca.R {input} {output} {wildcards.n_genes} {wildcards.scale}"
-        " > {log} 2>&1"
-
-
-def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, n_genes=int,
-                               logav_min=int(config["chip_logav_min"]), logav_max=int(config["chip_logav_max"]),
-                               logmax_max=int(config["chip_logmax_max"]), linmax_max=int(config["chip_linmax_max"]),
-                               allow_negative_val=False):
-    """
-    QC logic and rooting for choosing files for downstream analysis.
-    allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
-    """
-    print(f"Getting filtered exp matrices for {wildcards.organism} {wildcards.platform}...")
-    if wildcards.platform=="chip":
-        sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_mat_qc.tsv"
-        sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
-        sm_qc_df = sm_qc_df.astype({'HAS_NEGATIVE_VALUES': 'bool'})
-        sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
-        sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
-        sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=logav_min) & (sm_qc_df['LOGAV']<=logav_max)]
-        sm_qc_df = sm_qc_df[sm_qc_df['LINMAX']<=linmax_max]
-        sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=logmax_max]
-        # TODO: for some reason pca.R does not handles zero variance filtering in this dataset. Make it work later.
-        sm_qc_df = sm_qc_df[sm_qc_df['TAG']!="GSE75171"]
-        sm_qc_df = sm_qc_df[(sm_qc_df['HAS_NEGATIVE_VALUES']==False) | allow_negative_val]
-        sm_qc_df = sm_qc_df[sm_qc_df['N_GENES']>=n_genes]
-        exp_mat_tags = sm_qc_df["TAG"].tolist()
-
-    elif wildcards.platform=="seq":
-        gse_qc_df_file = str(checkpoints.aggregate_gse_qc_df.get(**wildcards).output)
-        gse_qc_df = pd.read_csv(gse_qc_df_file, sep="\t")
-        gse_qc_df = gse_qc_df[(gse_qc_df['N_GSM'] >= min_gsm) & (gse_qc_df['N_GSM'] <= max_gsm)]
-        exp_mat_tags = gse_qc_df["GSE"].tolist()
-        # exp_mat_files = \
-        #     expand(
-        #         rules.gsm_to_gse_cpm.output.gse,
-        #         organism=wildcards.organism,
-        #         gse=exp_mat_tags
-        #     )
-    return exp_mat_tags
-
-rule get_pc_list_adapter:
-    '''
-    Apparently it is impossible to pass 4k arguments with bash. This is workaround with concatenation of arguments to a 
-    single list. Note: it is not a problem with large number of inputs if they passed to 'run' section.
-    '''
-    input:
-        ancient(
-            lambda wildcards:
-            expand(rules.pca.output,
-                organism=wildcards.organism,
-                platform=wildcards.platform,
-                n_genes=wildcards.n_genes,
-                scale=wildcards.scale,
-                tag=get_filtered_exp_mat_files(
-                    wildcards,
-                    min_gsm=int(config["pca_min_gsm"]),
-                    max_gsm=int(config["pca_max_gsm"]),
-                    n_genes=int(wildcards.n_genes))))
-    output:
-        "out/{organism}/{platform}/pca/{n_genes}_{scale}.list"
-    run:
-        with open(str(output), 'w') as f:
-            for file in input:
-                f.write("%s\n" % file)
-
-rule get_pc_list:
-    '''
-    Aggregates pca components to single list of ranked lists. Filters components by QC.
-    QC params:
-    1) Explained valiance threshold. 2% for starters.
-    2) No more then 10pc per df.
-    If results look good conditions might be relaxed.
-    '''
-    resources:
-        mem_ram=16
-    input:
-        rules.get_pc_list_adapter.output
-    message:
-        "Getting PC list {wildcards.organism} {wildcards.platform} \n"
-        " Number of genes considered: {wildcards.n_genes} \n"
-        " Scale of original dataset: {wildcards.scale} \n"
-        " Explained variance % threshold: {wildcards.var_threshold} \n"
-        " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-    log: "logs/{organism}/{platform}/get_pc_list/{n_genes}_{scale}_{max_comp}_{var_threshold}.log"
-    output:
-        "out/{organism}/{platform}/pca/{n_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
-    conda: "envs/r_scripts.yaml"
-    shell:
-        "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
-        " > {log} 2>&1"
-
-# TODO: remove first two lines in genesets inside the script. Artifact from GQ
-# rule fgsea_genesets:
+#
+# def get_filtered_gse_gsm_map(gsm_df_file, organism,
+#                              min_gsm=None, max_gsm=None,
+#                              gpl_df_file=None, # if to be filtered by supported gpl
+#                              srr_df_file=None, min_spots=None, max_spots=None, # if to be filtered by the number of spots
+#                              gsm_qc_file=None, min_exp_genes=None,
+#                              n_batches=None, batch_n=None):
+#     """
+#     Takes FILES not links. Links to checkpoints are called inside other functions.
+#     Abstracts GSM GSE filtering on every level of the pipeline. Called in other functions to obtain proper mappings and
+#     filtered lists of GSM/GSE
+#     """
+#     global glob_gsm_srr_map
+#     global glob_gse_gsm_map
+#
+#     print("Filtering GSM by metadata...")
+#     organism_gsm = {"hs": "Homo sapiens", "mm": "Mus musculus", "rn": "Rattus norvegicus"}[organism]
+#     gsm_df = pd.read_csv(gsm_df_file, sep='\t')
+#     gsm_df = gsm_df[gsm_df["ORGANISM"] == organism_gsm]
+#     gsm_df = gsm_df[gsm_df["LIBRARY_SELECTION"] == "cDNA"]
+#     gsm_df = gsm_df[gsm_df["LIBRARY_STRATEGY"] == "RNA-Seq"]
+#
+#     if gpl_df_file:
+#         print("Filtering GSM by platform...")
+#         gpl_df = pd.read_csv(gpl_df_file, sep='\t')
+#         gpl_df = gpl_df[gpl_df["LAB"]==organism.upper()]
+#         gpl_list = gpl_df["GPL"].tolist()
+#         gsm_df = gsm_df[gsm_df["GPL"].isin(gpl_list)]
+#
+#     gsm_df = gsm_df[["GSE", "GSM"]]
+#     gsm_df = gsm_df.drop_duplicates()
+#
+#     if min_spots:
+#         print("Filtering GSM by number of spots...")
+#         if organism not in glob_gsm_srr_map:
+#             print("Saving srr df to global var")
+#             srr_df = pd.read_csv(srr_df_file, sep="\t")
+#             gsm_list = list(set(gsm_df['GSM'].tolist()))
+#             srr_df = srr_df[srr_df["GSM"].isin(gsm_list)]
+#             glob_gsm_srr_map[organism] = srr_df
+#
+#         print("Retrieving GSM SRR map from global...")
+#         srr_df = glob_gsm_srr_map[organism]
+#         srr_df = srr_df[['GSM', 'SPOTS']]
+#         srr_df = srr_df.groupby(['GSM']).sum().reset_index()
+#         srr_df = srr_df.astype({'GSM': 'str', 'SPOTS':'float'})
+#         srr_df = srr_df[(srr_df['SPOTS'] >= min_spots) & (srr_df['SPOTS'] <= max_spots)]
+#         filtered_gsm_list = srr_df['GSM'].tolist()
+#         gsm_df = gsm_df[gsm_df['GSM'].isin(filtered_gsm_list)]
+#
+#     if gsm_qc_file:
+#         print("Filtering GSM by number of expressed genes...")
+#         gsm_qc_df = pd.read_csv(gsm_qc_file, sep='\t')
+#         gsm_qc_df = gsm_qc_df[gsm_qc_df["N_EXP_GENES"] >= min_exp_genes]
+#         filtered_gsm_list = gsm_qc_df["GSM"].tolist()
+#         gsm_df = gsm_df[gsm_df['GSM'].isin(filtered_gsm_list)]
+#
+#     if min_gsm:
+#         print("Filtering by number of passing GSM per GSE...")
+#         gse_counts_df = gsm_df['GSE'].value_counts().reset_index()
+#         gse_counts_df = gse_counts_df.rename(columns={"index":"GSE", "GSE":"COUNT"})
+#         gse_counts_df = gse_counts_df[(gse_counts_df['COUNT'] >= min_gsm) & (gse_counts_df['COUNT'] <= max_gsm)]
+#         passing_gse = gse_counts_df['GSE'].tolist()
+#         gsm_df = gsm_df[gsm_df['GSE'].isin(passing_gse)]
+#         print("Further sub sampling for SRR df...")
+#         gsm_list = list(set(gsm_df['GSM'].tolist()))
+#         glob_gsm_srr_map[organism] = glob_gsm_srr_map[organism][glob_gsm_srr_map[organism]["GSM"].isin(gsm_list)]
+#
+#     print("Done.")
+#     return gsm_df
+#
+# #############################################RULES######################################################################
+#
+# rule sm_download:
 #     '''
-#     Performs fgsea against list of PC components. Outputs ranked list of results with NES.
+#     Takes search output .txt, parses out all links and downloads them. (wget -nc) Existing up to date files out dir
+#     doesn't reload. Writes completion flag in the end.
 #     '''
 #     resources:
-#         mem_ram=32,
-#         threads=8
+#         time=60*24*2,
+#         download_res=1,
+#         writing_res=1,
+#         priority=5
 #     input:
-#         pc_list=rules.get_pc_list.output,
-#         geneset="input/{organism}/genesets/{geneset_name}",
+#         "input/{organism}/{platform}/gds_search_result.txt"
 #     output:
-#         "out/{organism}/{platform}/pca_fgsea/"
-#         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-#         "raw/{geneset_name}.tsv"
-#     message:
-#         "Performing GSEA {wildcards.organism} seq \n"
-#         " Geneset: {wildcards.geneset_name} \n"
-#         " Number of genes considered: {wildcards.n_genes} \n"
-#         " Scale of original dataset: {wildcards.scale} \n"
-#         " Explained variance threshold %: {wildcards.var_threshold} \n"
-#         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-#         " FGSEA weight parameter: {wildcards.gsea_param}"
-#     log:
-#         "logs/{organism}/{platform}/fgsea_genesets/"
-#         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-#         "{geneset_name}.log"
-#     conda: "envs/fgsea.yaml"
+#         "flags/{organism}/{platform}/sm_download.flag"
+#     params:
+#         sm_download_dir="out/{organism}/{platform}/series_matrices"
+#     message: "Downloading series matrices for {wildcards.organism} {wildcards.platform}..."
+#     log: "logs/{organism}/{platform}/sm_download.log"
 #     shell:
-#         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output} {wildcards.gsea_param}"
+#         "scripts/bash/download_sm.sh {input} {params.sm_download_dir} "
+#         " > {log} 2>&1 &&"
+#         " touch {output}"
+#
+# checkpoint extract_sm_metadata:
+#     input:
+#         rules.sm_download.output
+#     output:
+#         gsm_df="out/{organism}/{platform}/sm_metadata/gsm.tsv",
+#         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
+#     params:
+#         sm_download_dir=rules.sm_download.params.sm_download_dir
+#     message: "Aggregating metadata from series matrices {wildcards.organism} {wildcards.platform} ..."
+#     log: "logs/{organism}/{platform}/sm_metadata.log"
+#     shell:
+#         "python scripts/python/parse_sm_metadata.py {params.sm_download_dir} {output.gse_df} {output.gsm_df}"
 #         " > {log} 2>&1"
 #
-# rule prepare_pca_fgsea_result:
-#     input:
-#         gsea_results=rules.fgsea_genesets.output,
-#         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
+# #############################################RNASEQ#####################################################################
+# rule sra_accession_df_download:
+#     resources:
+#         download_res=1,
+#         writing_res=1,
+#         mem_ram=2
 #     output:
-#         "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-#         "prepared/{geneset_name}.tsv"
-#     message:
-#         "Preparing results for PCA query. {wildcards.organism} seq \n"
-#         " Geneset: {wildcards.geneset_name} \n"
-#         " Number of genes considered: {wildcards.n_genes} \n"
-#         " Scale of original dataset: {wildcards.scale} \n"
-#         " Explained variance threshold %: {wildcards.var_threshold} \n"
-#         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
-#         " FGSEA weight parameter: {wildcards.gsea_param}"
-#     log:
-#         "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
-#         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
-#         "{geneset_name}.log"
+#         temp("out/data/sra_accession_raw.tab")
+#     message: "Downloading SRA accession table..."
+#     log: "logs/sra_accession_df_download.log"
+#     shell:
+#         "wget -O {output} {config[sra_accession_df]}"
+#         " > {log} 2>&1"
+#
+# rule get_srr_df:
+#     resources:
+#         writing_res=1
+#     input:
+#         rules.sra_accession_df_download.output
+#     output:
+#         "out/data/srr_gsm_spots.tsv"
+#     message: "Cleaning SRR df..."
+#     log: "logs/get_srr_df.log"
 #     conda: "envs/r_scripts.yaml"
 #     shell:
-#         "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
+#         "scripts/bash/clean_sra_accession_df.sh {input} {output}"
+#         " > {log} 2>&1 &&"
+#         " Rscript scripts/R/clean_sra_accession_df.R {output}"
+#         " >> {log} 2>&1"
+#
+# rule sra_download:
+#     resources:
+#         download_res=1,
+#         writing_res=1,
+#         mem_ram=2
+#     priority: 3
+#     output: temp("out/{organism}/seq/sra/{srr}.sra")
+#     log:    "logs/{organism}/seq/sra_download/{srr}.log"
+#     message: "Downloading {wildcards.srr} ({wildcards.organism})..."
+#     shadow: "shallow"
+#     conda: "envs/quantify.yaml"
+#     shell:
+#         "scripts/bash/download_sra.sh {wildcards.srr} {output}"
 #         " > {log} 2>&1"
-
-
-#########################################WGCNA##########################################################################
-# # TODO: CHANGE GSES in seq to exp_mat so that it is assessable from downstream rules with similar path pattern
-# rule wgcna:
+#
+# rule sra_fastqdump:
+#     resources:
+#         writing_res=1
 #     input:
-#         "out/{organism}/{platform}/exp_mat/{tag}.tsv"
+#         rules.sra_download.output
 #     output:
-#         modules="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/modules.tsv",
-#         eigengenes="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/eigengenes.tsv",
-#         stats="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/stats.txt"
-#     log: "logs/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}.log"
-#     message: "Performing WGCNA on {wildcards.tag} ({wildcards.organism}, {wildcards.platform})..."
+#         fastq_dir=temp(directory("out/{organism}/seq/fastq/{srr}")),
+#     log:    "logs/{organism}/seq/sra_fastqdump/{srr}.log"
+#     message: "fastq-dump {wildcards.srr} ({wildcards.organism})"
+#     conda: "envs/quantify.yaml"
+#     shadow: "shallow"
+#     shell:
+#         "fastq-dump --outdir {output.fastq_dir} --split-3 {input}"
+#         " > {log} 2>&1"
+#
+# rule fastq_kallisto:
+#     resources:
+#         mem_ram=lambda wildcards: config["quant_mem_ram"][wildcards.organism]
+#     priority: 2
+#     input:
+#         fastq_dir=rules.sra_fastqdump.output,
+#         refseq="input/{organism}/seq/refseq_kallisto"
+#     output:
+#         # before uncommenting h5 remove files of older versions as described in README. See NOTES on h5
+#         #h5=protected("out/{organism}/seq/kallisto/{srr}/abundance.h5"),
+#         tsv=protected("out/{organism}/seq/kallisto/{srr}/abundance.tsv"),
+#         json=protected("out/{organism}/seq/kallisto/{srr}/run_info.json")
+#     log: "logs/{organism}/seq/fastq_kallisto/{srr}.log"
+#     message: "Kallisto: {wildcards.srr} ({wildcards.organism})"
+#     conda: "envs/quantify.yaml"
+#     shadow: "shallow"
+#     shell:
+#         "scripts/bash/quantify.sh {wildcards.srr} {input.fastq_dir} {input.refseq}"
+#         " out/{wildcards.organism}/seq/kallisto/{wildcards.srr}"# output dir
+#         " {config[n_bootstrap]} "
+#         " > {log} 2>&1"
+#
+# def get_srr_files_for_gsm(wildcards):
+#     print(f"Getting SRR for {wildcards.gsm}")
+#     global glob_gsm_srr_map
+#
+#     # for speed. Otherwise it takes forever
+#     if wildcards.organism not in glob_gsm_srr_map:
+#         print("Saving srr df to global var")
+#         srr_df_file = "out/data/srr_gsm_spots.tsv"
+#         srr_df = pd.read_csv(srr_df_file, sep="\t")
+#         gsm_df = get_filtered_gse_gsm_map(f"out/{wildcards.organism}/seq/sm_metadata/gsm.tsv", wildcards.organism)
+#         gsm_list = list(set(gsm_df['GSM'].tolist()))
+#         srr_df = srr_df[srr_df["GSM"].isin(gsm_list)]
+#         glob_gsm_srr_map[wildcards.organism] = srr_df
+#
+#     srr_df = glob_gsm_srr_map[wildcards.organism]
+#     srr_list = srr_df[srr_df['GSM']==wildcards.gsm]["SRR"].tolist()
+#     srr_list = list(set(srr_list)) # removing possible duplicates
+#     srr_files = \
+#         expand(rules.fastq_kallisto.output.tsv,
+#         srr=srr_list,
+#         organism=wildcards.organism)
+#
+#     return srr_files
+#
+# rule srr_to_gsm:
+#     resources:
+#         mem_ram=1
+#     input:
+#         srr_files=ancient(get_srr_files_for_gsm),
+#         transcript_gene=ancient("input/{organism}/seq/transcript_gene.tsv")
+#     output:
+#         gsm_file="out/{organism}/seq/gsms/{gsm}.tsv",
+#         gsm_qc="out/{organism}/seq/gsms_qc/{gsm}_qc.tsv"
+#     log: "logs/{organism}/seq/srr_to_gsm/{gsm}.log"
+#     message: "Aggregating {wildcards.gsm} ({wildcards.organism})..."
 #     conda: "envs/r_scripts.yaml"
 #     shell:
-#         "Rscript scripts/R/wgcna.R {input} {output.modules} {output.eigengenes} {output.stats} "
-#         " {wildcards.n_genes} {wildcards.cor_type} {wildcards.network} {wildcards.scale}"
+#         "Rscript scripts/R/srr_to_gsm.R {output} {input.transcript_gene} {input.srr_files}"
 #         " > {log} 2>&1"
-# #
-# checkpoint get_wgcna_stats:
+#
+# def get_filtered_gsm_files_prequant(wildcards, **kwargs):
+#     print("Getting GSM files for quantification...")
+#     gse_gsm_map = get_filtered_gse_gsm_map(
+#         gsm_df_file=checkpoints.extract_sm_metadata.get(**wildcards).output.gsm_df,
+#         organism=wildcards.organism,
+#         **kwargs
+#     )
+#     gsm_list = list(set(gse_gsm_map['GSM'].tolist()))
+#
+#     print("Done.")
+#     return \
+#         expand("out/{organism}/seq/gsms/{gsm}.tsv",
+#             organism=wildcards.organism, gsm=gsm_list)
+#
+# checkpoint aggregate_gsm_qc_df:
 #     input:
 #         lambda wildcards:
-#             expand("out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/stats.txt",
-#                 organism=wildcards.organism,
-#                 platform=wildcards.platform,
-#                 n_genes=wildcards.n_genes,
-#                 cor_type=wildcards.cor_type,
-#                 network=wildcards.network,
-#                 scale=wildcards.scale,
-#                 tag=get_filtered_exp_mat_files(wildcards, int(config["min_gsm_wgcna"]),
-#                 int(config["max_gsm_wgcna"]), int(wildcards.n_genes)))
+#         ancient(get_filtered_gsm_files_prequant(wildcards,
+#             min_gsm=2, max_gsm=200,
+#             gpl_df_file="input/gpl.tsv", # if to be filtered by supported gpl
+#             srr_df_file=str(rules.get_srr_df.output),
+#             # if to be filtered by the number of spots
+#             min_spots=int(config["min_spots"][wildcards.organism]),
+#             max_spots=int(config["max_spots"][wildcards.organism])))
 #     output:
-#         "out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}_stats.tsv"
-#     conda: "envs/r_scripts.yaml"
-#     log: "logs/{organism}/{platform}/get_wgcna_stats/{n_genes}_{cor_type}_{network}_{scale}.log"
-#     message:
-#         "Getting WGCNA stats. \n"
-#         " Organism: {wildcards.organism} \n"
-#         " Platform: {wildcards.platform} \n"
-#         " Number of genes considered: {wildcards.n_genes} \n"
-#         " Correlation metric: {wildcards.cor_type} \n"
-#         " Network type: {wildcards.network} \n"
-#         " Scale: {wildcards.scale} \n"
+#         gsm_qc_df="out/{organism}/seq/gsm_qc.tsv"
 #     run:
+#         print("Aggregating GSM qc df...")
+#         n_exp_genes=\
+#             [
+#                 sum(pd.read_csv(gsm_file,sep='\t')['EST_COUNTS']!=0)
+#                 for gsm_file in input
+#             ]
+#         gsm_id_list=\
+#             [
+#                 re.findall("GSM\d+", gsm_file)[0]
+#                 for gsm_file in input
+#             ]
+#         gsm_qc_df = pd.DataFrame(
+#             {'GSM': gsm_id_list,
+#              'N_EXP_GENES': n_exp_genes
+#              })
+#         gsm_qc_df.to_csv(str(output),sep='\t',index=False)
+#         print("Done.")
+#
+# def get_gsm_files_for_gse(wildcards):
+#     global glob_postquant_gsm_gse_map
+#     print(f"Getting GSM files for {wildcards.gse}...")
+#     if wildcards.organism not in glob_postquant_gse_gsm_map:
+#         glob_postquant_gse_gsm_map[wildcards.organism] = \
+#             get_filtered_gse_gsm_map(
+#                 gsm_df_file=checkpoints.extract_sm_metadata.get(**wildcards).output.gsm_df,
+#                 min_gsm=2, max_gsm=200,
+#                 gpl_df_file="input/gpl.tsv", # if to be filtered by supported gpl
+#                 srr_df_file=str(rules.get_srr_df.output),
+#                 # if to be filtered by the number of spots
+#                 min_spots=int(config["min_spots"][wildcards.organism]),
+#                 max_spots=int(config["max_spots"][wildcards.organism]),
+#                 gsm_qc_file=str(checkpoints.aggregate_gsm_qc_df.get(**wildcards).output),
+#                 min_exp_genes=int(config["min_exp_genes"]),
+#                 organism=wildcards.organism
+#         )
+#     gse_gsm_map = glob_postquant_gsm_gse_map[wildcards.organism]
+#     gsm_list = gse_gsm_map[gse_gsm_map['GSE']==wildcards.gse].tolist()
+#
+#     return \
+#         expand(rules.srr_to_gsm.output.gsm_file,
+#             organism=wildcards.organism, gsm=gsm_list)
+#
+# rule gsm_to_gse_cpm:
+#     '''
+#     Aggregates GSM to sorted by TPM values, CPM GSE
+#     '''
+#     input:
+#         gsm_files=ancient(get_gsm_files_for_gse),
+#         gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
+#     output:
+#         gse=protected("out/{organism}/seq/exp_mat/{gse}.tsv")
+#     log: "logs/{organism}/gsm_to_gse_cpm/{gse}.log"
+#     message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
+#     shadow: "shallow"
+#     conda: "envs/r_scripts.yaml"
+#     shell:
+#         "Rscript scripts/R/gsm_to_gse.R {input.gene_mapping} {output.gse} {input.gsm_files}"
+#         " > {log} 2>&1"
+#
+# rule gsm_to_gse_counts:
+#     '''
+#     Aggregates unsorted raw counts GSE
+#     '''
+#     input:
+#         gsm_files=ancient(get_gsm_files_for_gse),
+#         gene_mapping=ancient("input/{organism}/seq/ensembl_symbol_entrez.tsv")
+#     output:
+#         gse=protected("out/{organism}/seq/gses_counts/{gse}.tsv")
+#     log: "logs/{organism}/gsm_to_gse_counts/{gse}.log"
+#     message: "Aggregating {wildcards.gse} ({wildcards.organism})..."
+#     shadow: "shallow"
+#     conda: "envs/r_scripts.yaml"
+#     shell:
+#         "Rscript scripts/R/gsm_to_gse_raw_counts.R {input.gene_mapping} {output.gse} {input.gsm_files}"
+#         " > {log} 2>&1"
+#
+# checkpoint aggregate_gse_qc_df:
+#     """
+#     DOESN'T PULL ANY OTHER RULES YET. Just aggregates info on existing files in folder
+#     Aggregates GSE qc df with GSE ids and number of GSM per GSE
+#     """
+#     # input:
+#     #     lambda wildcards:
+#     #         get_filtered_gse_files(wildcards,
+#     #             min_gsm=2, max_gsm=200,
+#     #             gpl_df_file="input/gpl.tsv", # if to be filtered by supported gpl
+#     #             srr_df_file=str(rules.get_srr_df.output),
+#     #             # if to be filtered by the number of spots
+#     #             min_spots=int(config["min_spots"][wildcards.organism]),
+#     #             max_spots=int(config["max_spots"][wildcards.organism]))
+#     output:
+#         "out/{organism}/seq/gse_cpm_qc.tsv"
+#     run:
+#         print(f"Aggregating GSE qc df for {wildcards.organism}...")
+#         gses_dir=f"out/{wildcards.organism}/seq/exp_mat"
+#         gse_files = [gses_dir + "/" + f for f in listdir(gses_dir)]
+#         n_gsm_list=\
+#             [
+#                 len(pd.read_csv(gse_file,sep='\t').columns)
+#                 for gse_file in gse_files
+#             ]
+#         gse_id_list=\
+#             [
+#                 re.findall("GSE\d+", gse_file)[0]
+#                 for gse_file in gse_files
+#             ]
+#         gse_qc_df = pd.DataFrame(
+#             {'GSE': gse_id_list,
+#              'N_GSM': n_gsm_list
+#              })
+#
+#         gse_qc_df.to_csv(str(output),sep='\t',index=False)
+#         print("Done.")
+#
+#
+# #############################################CHIP_ROOT##################################################################
+# rule extract_exp_mat:
+#     '''
+#     Extracts expression matrices from files and writes QC report for downstream filtering.
+#     gq_df: TAG	N_GSM	GPL	HAS_EXP_MAT	LOGAV	LINMAX	LOGMAX	N_GENES	HAS_NEGATIVE_VALUES	PROCESSED
+#     Writes empty exp table if error produced.
+#     '''
+#     resources:
+#         time=40
+#     input:
+#         gpl_dir="input/{organism}/chip/platform_annotation"
+#     params:
+#         sm="out/{organism}/chip/series_matrices/{tag}_series_matrix.txt.gz"
+#     output:
+#         exp_table=protected("out/{organism}/chip/exp_mat/{tag}.tsv"),
+#         qc_report=protected("out/{organism}/chip/exp_mat/{tag}_qc.tsv")
+#     log: "logs/{organism}/chip/extract_exp_mat/{tag}.log"
+#     message: "Extracting expression table from {wildcards.tag}_series_matrix.txt.gz ({wildcards.organism})..."
+#     conda: "envs/r_scripts.yaml"
+#     shell:
+#         "Rscript scripts/R/get_exp_table.R {params.sm} {input.gpl_dir} {output.exp_table} {output.qc_report}"
+#         " > {log} 2>&1"
+#
+# def get_filtered_sm_qc_files(wildcards):
+#     print("Filtering SM files...")
+#     gse_df_file = checkpoints.extract_sm_metadata.get(platform="chip", organism=wildcards.organism).output.gse_df
+#     print(gse_df_file)
+#     gse_df = pd.read_csv(gse_df_file, sep="\t")
+#     print(gse_df)
+#     gse_df = gse_df[(gse_df['NUMBER_GSM']>=config['min_gsm']) & (gse_df['NUMBER_GSM']<=config['max_gsm'])]
+#     print("Filtering SM by list of supported GPL...")
+#     gpl_dir = f"input/{wildcards.organism}/chip/platform_annotation"
+#     gpl_list = [f for f in listdir(gpl_dir) if isfile(join(gpl_dir, f))]
+#     gpl_list = [re.search('(.+?).3col.gz', gpl).group(1) for gpl in gpl_list]
+#     gse_df = gse_df[gse_df["GPL"].isin(gpl_list)]
+#     print("Removing super series...")
+#     gse_df = gse_df[gse_df["SUPER_SERIES_OF"].isna()]
+#
+#     filtered_sm_tags=gse_df["GSE"].to_list()
+#
+#     filtered_sm_qc_files = \
+#         expand('out/{organism}/chip/exp_mat/{tag}_qc.tsv',
+#         organism=wildcards.organism,
+#         tag=filtered_sm_tags)
+#     print("Done.")
+#     return filtered_sm_qc_files
+#
+# rule get_exp_mat_qc_df:
+#     input: get_filtered_sm_qc_files
+#     output: "out/{organism}/{platform}/exp_mat_qc.tsv"
+#     run:
+#         print(f"Aggregating QC df for SM {wildcards.organism}...")
 #         qc_df_list=[pd.read_csv(qc_file,sep='\t') for qc_file in input]
 #         qc_df=pd.concat(qc_df_list)
 #         qc_df.to_csv(str(output),sep='\t',index=False)
 #         print("Done.")
+#
+# #############################################INPUT_FUNCTION_QC##########################################################
+#
+#
+# #############################################PCA########################################################################
+# # def get_exp_mat_file(wildcards):
+# #     print(wildcards.platform)
+# #     if wildcards.platform=="chip":
+# #         return f"out/{wildcards.organism}/chip/exp_mat/{wildcards.tag}.tsv"
+# #     if wildcards.platform=="seq":
+# #         return f"out/{wildcards.organism}/seq/exp_mat/{wildcards.tag}.tsv"
+#
+# rule pca:
+#     '''
+#     Takes exp_mat as an input and outputs first
+#     1) 10 (or less) PC components loadings scores
+#     2) Stats- explained var, etc.
+#     '''
+#     resources:
+#         time = 20
+#     input:
+#         # get_exp_mat_file
+#         "out/{organism}/{platform}/exp_mat/{tag}.tsv"
+#     output:
+#         protected("out/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.rds"),
+#     message:
+#         "Performing PCA on {wildcards.tag} \n"
+#         " Organism: {wildcards.organism} \n"
+#         " Platform: {wildcards.platform} \n"
+#         " Number of genes considered: {wildcards.n_genes} \n"
+#         " Scale: {wildcards.scale}"
+#     log: "logs/{organism}/{platform}/pca/{n_genes}_{scale}/{tag}.log"
+#     conda: "envs/r_scripts.yaml"
+#     shell:
+#         "Rscript scripts/R/pca.R {input} {output} {wildcards.n_genes} {wildcards.scale}"
+#         " > {log} 2>&1"
+#
+#
+# def get_filtered_exp_mat_files(wildcards, min_gsm=int, max_gsm=int, n_genes=int,
+#                                logav_min=int(config["chip_logav_min"]), logav_max=int(config["chip_logav_max"]),
+#                                logmax_max=int(config["chip_logmax_max"]), linmax_max=int(config["chip_linmax_max"]),
+#                                allow_negative_val=False):
+#     """
+#     QC logic and rooting for choosing files for downstream analysis.
+#     allow_negative_val-flag tells if negative values allowed in exp mat, which is the case for some chips.
+#     """
+#     print(f"Getting filtered exp matrices for {wildcards.organism} {wildcards.platform}...")
+#     if wildcards.platform=="chip":
+#         sm_qc_df_file = f"out/{wildcards.organism}/chip/exp_mat_qc.tsv"
+#         sm_qc_df = pd.read_csv(sm_qc_df_file, sep="\t")
+#         sm_qc_df = sm_qc_df.astype({'HAS_NEGATIVE_VALUES': 'bool'})
+#         sm_qc_df = sm_qc_df[sm_qc_df['PROCESSED']==True]
+#         sm_qc_df = sm_qc_df[(sm_qc_df['N_GSM']>=min_gsm) & (sm_qc_df['N_GSM']<=max_gsm)]
+#         sm_qc_df = sm_qc_df[(sm_qc_df['LOGAV']>=logav_min) & (sm_qc_df['LOGAV']<=logav_max)]
+#         sm_qc_df = sm_qc_df[sm_qc_df['LINMAX']<=linmax_max]
+#         sm_qc_df = sm_qc_df[sm_qc_df['LOGMAX']<=logmax_max]
+#         # TODO: for some reason pca.R does not handles zero variance filtering in this dataset. Make it work later.
+#         sm_qc_df = sm_qc_df[sm_qc_df['TAG']!="GSE75171"]
+#         sm_qc_df = sm_qc_df[(sm_qc_df['HAS_NEGATIVE_VALUES']==False) | allow_negative_val]
+#         sm_qc_df = sm_qc_df[sm_qc_df['N_GENES']>=n_genes]
+#         exp_mat_tags = sm_qc_df["TAG"].tolist()
+#
+#     elif wildcards.platform=="seq":
+#         gse_qc_df_file = str(checkpoints.aggregate_gse_qc_df.get(**wildcards).output)
+#         gse_qc_df = pd.read_csv(gse_qc_df_file, sep="\t")
+#         gse_qc_df = gse_qc_df[(gse_qc_df['N_GSM'] >= min_gsm) & (gse_qc_df['N_GSM'] <= max_gsm)]
+#         exp_mat_tags = gse_qc_df["GSE"].tolist()
+#         # exp_mat_files = \
+#         #     expand(
+#         #         rules.gsm_to_gse_cpm.output.gse,
+#         #         organism=wildcards.organism,
+#         #         gse=exp_mat_tags
+#         #     )
+#     return exp_mat_tags
 
-
-##############################################KS_RESULTS#################################
+# rule get_pc_list_adapter:
+#     '''
+#     Apparently it is impossible to pass 4k arguments with bash. This is workaround with concatenation of arguments to a
+#     single list. Note: it is not a problem with large number of inputs if they passed to 'run' section.
+#     '''
+#     input:
+#         ancient(
+#             lambda wildcards:
+#             expand(rules.pca.output,
+#                 organism=wildcards.organism,
+#                 platform=wildcards.platform,
+#                 n_genes=wildcards.n_genes,
+#                 scale=wildcards.scale,
+#                 tag=get_filtered_exp_mat_files(
+#                     wildcards,
+#                     min_gsm=int(config["pca_min_gsm"]),
+#                     max_gsm=int(config["pca_max_gsm"]),
+#                     n_genes=int(wildcards.n_genes))))
+#     output:
+#         "out/{organism}/{platform}/pca/{n_genes}_{scale}.list"
+#     run:
+#         with open(str(output), 'w') as f:
+#             for file in input:
+#                 f.write("%s\n" % file)
+#
+# rule get_pc_list:
+#     '''
+#     Aggregates pca components to single list of ranked lists. Filters components by QC.
+#     QC params:
+#     1) Explained valiance threshold. 2% for starters.
+#     2) No more then 10pc per df.
+#     If results look good conditions might be relaxed.
+#     '''
+#     resources:
+#         mem_ram=16
+#     input:
+#         rules.get_pc_list_adapter.output
+#     message:
+#         "Getting PC list {wildcards.organism} {wildcards.platform} \n"
+#         " Number of genes considered: {wildcards.n_genes} \n"
+#         " Scale of original dataset: {wildcards.scale} \n"
+#         " Explained variance % threshold: {wildcards.var_threshold} \n"
+#         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+#     log: "logs/{organism}/{platform}/get_pc_list/{n_genes}_{scale}_{max_comp}_{var_threshold}.log"
+#     output:
+#         "out/{organism}/{platform}/pca/{n_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds"
+#     conda: "envs/r_scripts.yaml"
+#     shell:
+#         "Rscript scripts/R/get_pc_list.R {output} {wildcards.max_comp} {wildcards.var_threshold} {input}"
+#         " > {log} 2>&1"
+#
+# # TODO: remove first two lines in genesets inside the script. Artifact from GQ
+# # rule fgsea_genesets:
+# #     '''
+# #     Performs fgsea against list of PC components. Outputs ranked list of results with NES.
+# #     '''
+# #     resources:
+# #         mem_ram=32,
+# #         threads=8
+# #     input:
+# #         pc_list=rules.get_pc_list.output,
+# #         geneset="input/{organism}/genesets/{geneset_name}",
+# #     output:
+# #         "out/{organism}/{platform}/pca_fgsea/"
+# #         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+# #         "raw/{geneset_name}.tsv"
+# #     message:
+# #         "Performing GSEA {wildcards.organism} seq \n"
+# #         " Geneset: {wildcards.geneset_name} \n"
+# #         " Number of genes considered: {wildcards.n_genes} \n"
+# #         " Scale of original dataset: {wildcards.scale} \n"
+# #         " Explained variance threshold %: {wildcards.var_threshold} \n"
+# #         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+# #         " FGSEA weight parameter: {wildcards.gsea_param}"
+# #     log:
+# #         "logs/{organism}/{platform}/fgsea_genesets/"
+# #         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+# #         "{geneset_name}.log"
+# #     conda: "envs/fgsea.yaml"
+# #     shell:
+# #         "Rscript scripts/R/fgsea_geneset.R {input.pc_list} {input.geneset} {output} {wildcards.gsea_param}"
+# #         " > {log} 2>&1"
+# #
+# # rule prepare_pca_fgsea_result:
+# #     input:
+# #         gsea_results=rules.fgsea_genesets.output,
+# #         gse_df="out/{organism}/{platform}/sm_metadata/gse.tsv"
+# #     output:
+# #         "out/{organism}/{platform}/pca_fgsea/{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+# #         "prepared/{geneset_name}.tsv"
+# #     message:
+# #         "Preparing results for PCA query. {wildcards.organism} seq \n"
+# #         " Geneset: {wildcards.geneset_name} \n"
+# #         " Number of genes considered: {wildcards.n_genes} \n"
+# #         " Scale of original dataset: {wildcards.scale} \n"
+# #         " Explained variance threshold %: {wildcards.var_threshold} \n"
+# #         " Max PC components for 1 dataset: {wildcards.max_comp} \n"
+# #         " FGSEA weight parameter: {wildcards.gsea_param}"
+# #     log:
+# #         "logs/{organism}/{platform}/prepare_pca_fgsea_result/"
+# #         "{n_genes}_{scale}_{max_comp}_{var_threshold}_{gsea_param}/"
+# #         "{geneset_name}.log"
+# #     conda: "envs/r_scripts.yaml"
+# #     shell:
+# #         "Rscript scripts/R/pca_prepare_results.R {input.gsea_results} {input.gse_df} {output}"
+# #         " > {log} 2>&1"
+#
+#
+# #########################################WGCNA##########################################################################
+# # # TODO: CHANGE GSES in seq to exp_mat so that it is assessable from downstream rules with similar path pattern
+# # rule wgcna:
+# #     input:
+# #         "out/{organism}/{platform}/exp_mat/{tag}.tsv"
+# #     output:
+# #         modules="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/modules.tsv",
+# #         eigengenes="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/eigengenes.tsv",
+# #         stats="out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/stats.txt"
+# #     log: "logs/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}.log"
+# #     message: "Performing WGCNA on {wildcards.tag} ({wildcards.organism}, {wildcards.platform})..."
+# #     conda: "envs/r_scripts.yaml"
+# #     shell:
+# #         "Rscript scripts/R/wgcna.R {input} {output.modules} {output.eigengenes} {output.stats} "
+# #         " {wildcards.n_genes} {wildcards.cor_type} {wildcards.network} {wildcards.scale}"
+# #         " > {log} 2>&1"
+# # #
+# # checkpoint get_wgcna_stats:
+# #     input:
+# #         lambda wildcards:
+# #             expand("out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}/{tag}/stats.txt",
+# #                 organism=wildcards.organism,
+# #                 platform=wildcards.platform,
+# #                 n_genes=wildcards.n_genes,
+# #                 cor_type=wildcards.cor_type,
+# #                 network=wildcards.network,
+# #                 scale=wildcards.scale,
+# #                 tag=get_filtered_exp_mat_files(wildcards, int(config["min_gsm_wgcna"]),
+# #                 int(config["max_gsm_wgcna"]), int(wildcards.n_genes)))
+# #     output:
+# #         "out/{organism}/{platform}/wgcna/{n_genes}_{cor_type}_{network}_{scale}_stats.tsv"
+# #     conda: "envs/r_scripts.yaml"
+# #     log: "logs/{organism}/{platform}/get_wgcna_stats/{n_genes}_{cor_type}_{network}_{scale}.log"
+# #     message:
+# #         "Getting WGCNA stats. \n"
+# #         " Organism: {wildcards.organism} \n"
+# #         " Platform: {wildcards.platform} \n"
+# #         " Number of genes considered: {wildcards.n_genes} \n"
+# #         " Correlation metric: {wildcards.cor_type} \n"
+# #         " Network type: {wildcards.network} \n"
+# #         " Scale: {wildcards.scale} \n"
+# #     run:
+# #         qc_df_list=[pd.read_csv(qc_file,sep='\t') for qc_file in input]
+# #         qc_df=pd.concat(qc_df_list)
+# #         qc_df.to_csv(str(output),sep='\t',index=False)
+# #         print("Done.")
+#
+#
+# ##############################################KS_RESULTS#################################
 
 rule ks_genesets:
     '''
@@ -748,7 +748,7 @@ rule ks_genesets:
     resources:
         mem_ram=32
     input:
-        pc_list=rules.get_pc_list.output,
+        pc_list="out/{organism}/{platform}/pca/{n_genes}_{scale}_{max_comp}_{var_threshold}_PCList.rds",
         geneset="input/{organism}/genesets/{geneset_name}",
     output:
         "out/{organism}/{platform}/pca_ks/"
