@@ -36,7 +36,7 @@ ks_results_df$GSE <- NULL
 
 ks_results_df <- ks_results_df[order(ks_results_df$PVAL, decreasing = F),]
 
-ks_results_df$PADJ <- ks_results_df$PVAL %>% p.adjust(p, method = "bonferroni", n = n_tests)
+ks_results_df$PADJ <- ks_results_df$PVAL %>% p.adjust(method = "bonferroni", n = n_tests)
 
 ks_results_df$LOG_PVAL <- log10(ks_results_df$PVAL)
 ks_results_df$LOG_PADJ <- log10(ks_results_df$PADJ)
