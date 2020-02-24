@@ -38,6 +38,11 @@ ks_results_df <- ks_results_df[order(ks_results_df$PVAL, decreasing = F),]
 
 ks_results_df$PADJ <- ks_results_df$PVAL %>% p.adjust(p, method = "bonferroni", n = n_tests)
 
+ks_results_df$LOG_PVAL <- log10(ks_results_df$PVAL)
+ks_results_df$LOG_PADJ <- log10(ks_results_df$PADJ)
+
+ks_results_df <- ks_results_df %>% select("LABEL", "LOG_PVAL", "LOG_PADJ", "INTERSECTION", "TITLE")
+
 write.table(ks_results_df, annotated_output_file, col.names = T, row.names = F, sep = "\t", quote=F)
 
 print("Done.")
