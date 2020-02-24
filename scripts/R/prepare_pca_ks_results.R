@@ -11,6 +11,7 @@ cat(sprintf("GSE df file: %s \n", gse_df_file))
 cat(sprintf("Annotated output file: %s \n", annotated_output_file))
 
 ks_results_df <- read.csv(ks_results_df_file, sep='\t', stringsAsFactors=F)
+n_tests <- ks_results_df %>% nrow()
 
 print("Sorting results by NES...")
 ks_results_df <- ks_results_df[order(ks_results_df$PVAL, decreasing = F),]
@@ -34,6 +35,8 @@ ks_results_df <- merge(ks_results_df, gse_df, all.x=T)
 ks_results_df$GSE <- NULL
 
 ks_results_df <- ks_results_df[order(ks_results_df$PVAL, decreasing = F),]
+
+ks_results_df$PADJ <- ks_results_df$PVAL %>% p.adjust(p, method = "bonferroni", n = n_tests)
 
 write.table(ks_results_df, annotated_output_file, col.names = T, row.names = F, sep = "\t", quote=F)
 

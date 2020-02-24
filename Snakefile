@@ -3,10 +3,6 @@ configfile: "config.yaml"
 # TODO: aggregate metadata on kallisto runs in df and choose version of callisto used for most of the samples.
 # TODO: gz all tsv files in pipeline
 
-# TODO: add QC based on variance. Something strange with GSE75171
-# TODO: IMPLIMENT PRINCIPAL HULL ANALYSIS WITH ELBOW THRESHOLDING
-# TODO: Meaningfuly scale loadings for weighted gsea
-
 
 import pandas as pd
 from os import listdir
