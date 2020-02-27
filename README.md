@@ -5,10 +5,13 @@ Pipeline for processing and analysis of gene expression data. Currently consists
 2) RNA-seq quantification with Kallisto(46.1). Currently:
     - RNA-seq samples filtered by metadata. GSE with 2-400 passing metadata filter samples are taken for quantification.
     - 100 rounds of bootstrap. Necessary for future downstream. 
-3) 
+3) Microarray preprocessing. 
+4) WGCNA 
+5) PCA
+6) Ranked-list of genes statistical testing(GSEA, KS, wilcoxGST)
 
 
-## NOTES:
+### NOTES:
  - On h5 files: 
  
     Most of RNA seq run on different 44.x 45.x 46.x versions with 0 bootsrap and
@@ -21,10 +24,11 @@ Version and number of bootstrap rounds doesn't affect anything. According to cha
 been changed between this 45-46 versions. Bootstrap is used to estimate instrumental variance. So, basically 
 this means that tsv output matrix is same for 44-46 versions with any number of bootstrap rounds. 
 some comments on bootstrap: https://www.biostars.org/p/155032/
+ - To speedup graph calculation comment all downstream rules of one you need and delete input section in first rule. 
+ this would allow Snakemake to skip graph calculation for existing files. 
 
 # Current input files:
 1) GGS searches 04.12.2019
-2) ....
 
 Pipeline quantifies SRR files and aggregates them first to GSM and then to GSM matrices.
 
@@ -95,13 +99,3 @@ For multiple run can try:
 
 Run test snakemake:
 snakemake --snakefile=test.smk
-
------------------------------
-PCA query: 
-1) Do PCA on all rna-seq
-2) Make PCA.
-3) Query one dataset by all of it's component
-4) Look individually at ranked lists
-5) Combine several lists in to joint list and look at the ranking. Re-rank by summing the rungs.
-
-To speedup thighs, you can comment downstream rules to prevent graph calculation for rule and everything below. 
