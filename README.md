@@ -1,6 +1,6 @@
 # GEO RNA-seq and microarray meta-analysis pipeline
 
-Pipeline for large scale processing and analysis of gene expression data. Currently consists of fallowing modules:
+Pipeline for processing and analysis of gene expression data. Currently consists of fallowing modules:
 1) Downloading Series Matrices from GEO and gathering metadata to tsv tables. 
 2) RNA-seq quantification with Kallisto(46.1). Currently:
     - RNA-seq samples filtered by metadata. GSE with 2-400 passing metadata filter samples are taken for quantification.
@@ -8,7 +8,7 @@ Pipeline for large scale processing and analysis of gene expression data. Curren
 3) 
 
 
-##NOTES:
+## NOTES:
  - On h5 files: 
  
     Most of RNA seq run on different 44.x 45.x 46.x versions with 0 bootsrap and
